@@ -120,7 +120,7 @@ export function renderDashboard() {
 
   track(onSnapshot(collection(db, 'votes'), snapshot => {
     state.votes = snapshot.size;
-    state.guests = new Set(snapshot.docs.map(item => item.data().invitationId).filter(Boolean));
+    state.guests = new Set(snapshot.docs.map(item => item.data().guestId).filter(Boolean));
     paintStats();
   }));
 

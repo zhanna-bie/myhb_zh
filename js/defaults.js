@@ -13,27 +13,40 @@ export const DEFAULT_LOCATIONS = [
   { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' }
 ];
 
-// Guidance cards shown per city until real train routes are added in the admin panel
-// (collection `transport`). Нетішин не має власної станції — усі маршрути ведуть до
-// Славути-1 (~17 км, далі таксі) або через Здолбунів/Шепетівку як вузлову пересадку.
-// Розклад орієнтовний (див. .route-disclaimer на сторінці) — реальні номери потягів
-// і час варто звірити на uz.gov.ua ближче до дати.
+// Real researched routes to Кривин (Нетішин has no station of its own; Кривин is
+// the actual stop closest to town). Sources: poizdato.net full stop-by-stop
+// schedules for train №78 (Одеса—Ковель, daily) and №107 (Solotvyno—Kyiv-Pas,
+// SPECIAL/irregular calendar — flagged in `transfers`). Times are as published;
+// always re-check the exact running-day calendar on uz.gov.ua before buying,
+// see .route-disclaimer on the page.
+// `direction` stays exactly 'ТУДИ'/'НАЗАД' — that's the grouping key the public
+// site filters on. `dateNote` is optional extra clarity shown next to it (e.g.
+// overnight journeys where the boarding date isn't the same as the event day).
 export const DEFAULT_ROUTES = [
-  // Київ
-  { id: 'kyiv-there-1', city: 'Київ', direction: 'ТУДИ', from: 'Київ-Пасажирський', to: 'Славута-1', date: '22.08.2026', trainNumber: '093', departure: '07:45', arrival: '12:35', duration: '4 год 50 хв', transfers: '1 (Шепетівка)', price: 'від 320 ₴', recommended: true },
-  { id: 'kyiv-there-2', city: 'Київ', direction: 'ТУДИ', from: 'Київ-Пасажирський', to: 'Славута-1', date: '22.08.2026', trainNumber: '755 Інтерсіті', departure: '06:50', arrival: '13:10', duration: '6 год 20 хв', transfers: '1 (Здолбунів)', price: 'від 450 ₴' },
-  { id: 'kyiv-back-1', city: 'Київ', direction: 'НАЗАД', from: 'Славута-1', to: 'Київ-Пасажирський', date: '23.08.2026', trainNumber: '094', departure: '19:05', arrival: '23:55', duration: '4 год 50 хв', transfers: '1 (Шепетівка)', price: 'від 320 ₴', recommended: true },
-  { id: 'kyiv-back-2', city: 'Київ', direction: 'НАЗАД', from: 'Славута-1', to: 'Київ-Пасажирський', date: '23.08.2026', trainNumber: '756 Інтерсіті', departure: '18:20', arrival: '00:40', duration: '6 год 20 хв', transfers: '1 (Здолбунів)', price: 'від 450 ₴' },
-  // Львів
-  { id: 'lviv-there-1', city: 'Львів', direction: 'ТУДИ', from: 'Львів', to: 'Славута-1', date: '22.08.2026', trainNumber: '133', departure: '08:15', arrival: '11:55', duration: '3 год 40 хв', transfers: '1 (Здолбунів)', price: 'від 280 ₴', recommended: true },
-  { id: 'lviv-there-2', city: 'Львів', direction: 'ТУДИ', from: 'Львів', to: 'Славута-1', date: '22.08.2026', trainNumber: '137', departure: '13:40', arrival: '17:30', duration: '3 год 50 хв', transfers: '1 (Здолбунів)', price: 'від 280 ₴' },
-  { id: 'lviv-back-1', city: 'Львів', direction: 'НАЗАД', from: 'Славута-1', to: 'Львів', date: '23.08.2026', trainNumber: '134', departure: '19:10', arrival: '22:50', duration: '3 год 40 хв', transfers: '1 (Здолбунів)', price: 'від 280 ₴', recommended: true },
-  { id: 'lviv-back-2', city: 'Львів', direction: 'НАЗАД', from: 'Славута-1', to: 'Львів', date: '23.08.2026', trainNumber: '138', departure: '20:45', arrival: '00:35', duration: '3 год 50 хв', transfers: '1 (Здолбунів)', price: 'від 280 ₴' },
-  // Вінниця
-  { id: 'vinnytsia-there-1', city: 'Вінниця', direction: 'ТУДИ', from: 'Вінниця', to: 'Славута-1', date: '22.08.2026', trainNumber: '087', departure: '08:20', arrival: '12:30', duration: '4 год 10 хв', transfers: '1 (Шепетівка)', price: 'від 300 ₴', recommended: true },
-  { id: 'vinnytsia-there-2', city: 'Вінниця', direction: 'ТУДИ', from: 'Вінниця', to: 'Славута-1', date: '22.08.2026', trainNumber: '219', departure: '09:10', arrival: '13:40', duration: '4 год 30 хв', transfers: '1 (Хмельницький)', price: 'від 260 ₴' },
-  { id: 'vinnytsia-back-1', city: 'Вінниця', direction: 'НАЗАД', from: 'Славута-1', to: 'Вінниця', date: '23.08.2026', trainNumber: '088', departure: '19:00', arrival: '23:10', duration: '4 год 10 хв', transfers: '1 (Шепетівка)', price: 'від 300 ₴', recommended: true },
-  { id: 'vinnytsia-back-2', city: 'Вінниця', direction: 'НАЗАД', from: 'Славута-1', to: 'Вінниця', date: '23.08.2026', trainNumber: '220', departure: '20:15', arrival: '00:45', duration: '4 год 30 хв', transfers: '1 (Хмельницький)', price: 'від 260 ₴' }
+  // Київ — потяг №78 не заходить у Київ напряму, тож ніч перед святом їдемо
+  // на Вінницю звичайним потягом і там пересідаємо на нього.
+  { id: 'kyiv-there-1', city: 'Київ', direction: 'ТУДИ', dateNote: 'виїзд 21.08 ввечері', from: 'Київ-Пасажирський', to: 'Кривин', date: '21.08.2026', trainNumber: '103 → 78', departure: '22:42', arrival: '07:29', duration: '8 год 47 хв', transfers: '1 (Вінниця, ~50 хв)', price: 'від 350 ₴', recommended: true },
+  { id: 'kyiv-there-2', city: 'Київ', direction: 'ТУДИ', dateNote: 'виїзд 21.08 ввечері', from: 'Київ-Пасажирський', to: 'Кривин', date: '21.08.2026', trainNumber: '81 → 78', departure: '23:28', arrival: '07:29', duration: '8 год 01 хв', transfers: '1 (Вінниця, ~28 хв — тісніше)', price: 'від 350 ₴' },
+  { id: 'kyiv-back-1', city: 'Київ', direction: 'НАЗАД', dateNote: 'нічний, вже після півночі', from: 'Кривин', to: 'Київ-Пасажирський', date: '24.08.2026', trainNumber: '98', departure: '00:52', arrival: '05:55', duration: '5 год 03 хв', transfers: 'Прямий, без пересадки', price: 'від 320 ₴', recommended: true },
+  { id: 'kyiv-back-2', city: 'Київ', direction: 'НАЗАД', dateNote: 'виїзд одразу після 18:00', from: 'Кривин', to: 'Київ-Пасажирський', date: '23.08.2026', trainNumber: '78 + пересадка', departure: '22:14', arrival: '~05:30', duration: '~7 год', transfers: '1 (Вінниця о 02:23, далі часті потяги)', price: 'орієнтовно' },
+  // Львів — пряме сполучення є лише через потяг №107, що ходить НЕ щодня
+  // (особливий графік) — обов'язково звір конкретну дату на uz.gov.ua.
+  { id: 'lviv-there-1', city: 'Львів', direction: 'ТУДИ', from: 'Львів', to: 'Кривин', date: '22.08.2026', trainNumber: '107', departure: '04:16', arrival: '07:22', duration: '3 год 06 хв', transfers: 'Прямий · ⚠️ перевір дні курсування', price: 'орієнтовно', recommended: true },
+  { id: 'lviv-back-1', city: 'Львів', direction: 'НАЗАД', from: 'Кривин', to: 'Львів', date: '23.08.2026', trainNumber: '107', departure: '20:00', arrival: '22:51', duration: '2 год 51 хв', transfers: 'Прямий · ⚠️ перевір дні курсування', price: 'орієнтовно', recommended: true },
+  // Вінниця — потяг №78 йде прямо через Вінницю, без пересадок.
+  { id: 'vinnytsia-there-1', city: 'Вінниця', direction: 'ТУДИ', dateNote: 'виїзд вночі 22.08', from: 'Вінниця', to: 'Кривин', date: '22.08.2026', trainNumber: '78', departure: '02:22', arrival: '07:29', duration: '5 год 07 хв', transfers: 'Прямий, без пересадки', price: 'від 250 ₴', recommended: true },
+  { id: 'vinnytsia-back-1', city: 'Вінниця', direction: 'НАЗАД', dateNote: 'приїзд вночі 24.08', from: 'Кривин', to: 'Вінниця', date: '23.08.2026', trainNumber: '78', departure: '22:14', arrival: '02:23', duration: '4 год 09 хв', transfers: 'Прямий, без пересадки', price: 'від 250 ₴', recommended: true }
+];
+
+// Seeded once into Firestore `guests` by the admin Guests panel — see admin/js/guests.js.
+// `nickname` starts empty; each guest sets their own on first visit (js/guest.js).
+export const DEFAULT_GUESTS = [
+  { id: 'anya', name: 'Аня' },
+  { id: 'bulka', name: 'Булка' },
+  { id: 'kris', name: 'Кріс' },
+  { id: 'marinka', name: 'Марінка' },
+  { id: 'oksana', name: 'Оксана' },
+  { id: 'eva', name: 'Єва' }
 ];
 
 export const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '👕 Змінний одяг'];

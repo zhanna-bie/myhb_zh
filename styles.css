@@ -396,7 +396,7 @@ body { font-size: 18px; line-height: 1.55; }
 .photo-meta > span { position: static; display: grid; gap: 2px; padding: 0; background: transparent; font: inherit; }
 .photo-meta small { color: var(--muted); font-size: 12px; }
 .like-photo { min-width: 48px; min-height: 44px; border-radius: 10px; font-size: 15px; }
-.photo-actions { display: grid; grid-template-columns: 1fr 1.25fr; gap: 6px; padding: 0 8px 8px; background: rgba(14,11,20,.88); }
+.photo-actions { display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 6px; padding: 0 8px 8px; background: rgba(14,11,20,.88); }
 /* CSS elsewhere sets display on these links, which overrides the [hidden] attribute —
    without this rule the Wishlist/Checklist links stay visible in Memories Mode. */
 .nav nav a[hidden], .mobile-nav a[hidden] { display: none !important; }
@@ -585,3 +585,23 @@ body {
   font-size: 15px; opacity: .8; text-shadow: 0 0 12px rgba(255, 179, 0, .5);
 }
 .wish-card-public > * { position: relative; }
+
+/* Guest identity gate: "Хто ти?" name + nickname flow, styled like ticket-dialog. */
+.guest-gate { width: min(92vw, 440px); padding: 32px; color: var(--paper); background: #171122; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.55); }
+.guest-gate::backdrop { background: rgba(4,3,8,.82); backdrop-filter: blur(5px); }
+.guest-gate h2 { font-size: clamp(26px, 5vw, 34px); margin: 10px 0 20px; }
+.guest-gate label { display: grid; gap: 8px; margin-bottom: 16px; font-size: 13px; color: var(--muted); }
+.guest-gate select, .guest-gate input { min-height: 50px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.05); color: var(--paper); font: 500 16px Manrope; }
+.guest-gate select:focus, .guest-gate input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.guest-gate .muted { font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
+.guest-gate .form-hint { color: var(--muted); font-size: 13px; margin: -6px 0 14px; }
+.guest-gate .form-error { color: #ff9db0; font-size: 13px; min-height: 1.3em; margin: 10px 0 0; }
+.guest-gate-actions { display: flex; gap: 10px; }
+.guest-gate-actions .button { flex: 1; margin: 0; }
+.guest-gate button[type="submit"] { width: 100%; min-height: 50px; }
+.not-me-link { position: fixed; left: 14px; bottom: 14px; z-index: 15; border: 1px solid var(--line); background: rgba(14,11,20,.75); backdrop-filter: blur(6px); color: var(--muted); font: 700 10px Manrope; letter-spacing: .06em; text-transform: uppercase; padding: 10px 14px; border-radius: 999px; cursor: pointer; }
+.not-me-link:hover { color: var(--gold); border-color: rgba(255,179,0,.4); }
+@media (max-width: 700px) {
+  .guest-gate { width: calc(100vw - 24px); padding: 24px; }
+  .not-me-link { left: 10px; bottom: 10px; font-size: 9px; padding: 9px 12px; }
+}

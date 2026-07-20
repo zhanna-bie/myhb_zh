@@ -24,6 +24,9 @@ function restaurantForm(data = {}, id = '') {
       <label>Формат (у якому кроці голосування показувати)
         <select name="venue">${Object.entries(VENUES).map(([value, label]) => `<option value="${value}" ${value === venue ? 'selected' : ''}>${label}</option>`).join('')}</select>
       </label>
+      <label>Порядок «у закладі» (менше число — вище в списку)<input name="orderOut" type="number" step="1" value="${escapeHtml(String(data.orderOut ?? ''))}" placeholder="напр. 10"></label>
+      <label>Порядок «вдома» (менше число — вище в списку)<input name="orderHome" type="number" step="1" value="${escapeHtml(String(data.orderHome ?? ''))}" placeholder="напр. 10"></label>
+      <p class="form-hint">Незалежний порядок для кожної категорії — заклад може бути високо «у закладі» й нижче «вдома». Порожнє поле = в кінець списку.</p>
       <label>Посилання на меню<input name="menuUrl" type="url" required placeholder="https://…" value="${escapeHtml(String(data.menuUrl || ''))}"></label>
       <label>Google Maps (необов'язково)<input name="mapsUrl" type="url" placeholder="https://maps.app.goo.gl/…" value="${escapeHtml(String(data.mapsUrl || ''))}"></label>
       <label>Фото закладу
@@ -71,6 +74,8 @@ async function saveRestaurant(form) {
     name: raw.name.trim(),
     category: raw.category.trim(),
     venue: ['out', 'home', 'both'].includes(raw.venue) ? raw.venue : 'out',
+    orderOut: raw.orderOut === '' ? undefined : Number(raw.orderOut),
+    orderHome: raw.orderHome === '' ? undefined : Number(raw.orderHome),
     menuUrl: raw.menuUrl,
     mapsUrl: raw.mapsUrl || '',
     photos: String(raw.photos || '').split(',').map(value => value.trim()).filter(Boolean).slice(0, 3),
@@ -80,7 +85,14 @@ async function saveRestaurant(form) {
     await updateDoc(doc(db, 'restaurants', raw.id), { ...payload, updatedAt: serverTimestamp() });
     toast.success('Заклад оновлено');
   } else {
-    await addDoc(collection(db, 'restaurants'), { ...payload, sortOrder: Date.now(), createdAt: serverTimestamp() });
+    const fallbackOrder = Date.now();
+    await addDoc(collection(db, 'restaurants'), {
+      orderOut: fallbackOrder,
+      orderHome: fallbackOrder,
+      ...payload,
+      sortOrder: fallbackOrder,
+      createdAt: serverTimestamp()
+    });
     toast.success('Заклад додано — вже на сайті');
   }
 }
@@ -169,6 +181,7 @@ export function renderRestaurants() {
               <span class="badge">${data.enabled === false ? 'Приховано' : VENUES[data.venue] || VENUES.out}</span>
               <h3>${escapeHtml(data.name)}</h3>
               <p>${escapeHtml(data.category)}${data.photos?.length ? '' : ' · <b>без фото</b>'}</p>
+              <p class="muted">Порядок: у закладі #${data.orderOut ?? '—'} · вдома #${data.orderHome ?? '—'}</p>
               <div class="vote-bar"><i style="width:${percent}%"></i><span>${count} голос(ів) · ${percent}%</span></div>
             </div>
             <footer class="entity-card-actions">

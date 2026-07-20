@@ -78,7 +78,7 @@ async function processQueue(user) {
         uploadedBy: user.uid,
         uploadedByName: user.displayName || user.email?.split('@')[0] || 'Admin',
         uploadedAt: serverTimestamp(),
-        likes: 0,
+        likedBy: [],
         downloads: 0,
         fileSize: compressed.size,
         width: dimensions.width,

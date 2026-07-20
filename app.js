@@ -1,12 +1,13 @@
-import { collection, doc, onSnapshot, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db, ensureGuestSession } from './js/firebase.js';
+import { collection, doc, onSnapshot, serverTimestamp, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { db } from './js/firebase.js';
 import { $, $$, escapeHtml } from './js/utils.js';
 import { LiveGallery } from './js/gallery.js';
+import { ensureGuestIdentity } from './js/guest.js';
 import { DEFAULT_CHECKLIST, DEFAULT_LOCATIONS, DEFAULT_ROUTES, DEFAULT_SETTINGS, DEFAULT_SWIM_CHECKLIST } from './js/defaults.js';
 
 const DEFAULT_PARTY_DATE = DEFAULT_SETTINGS.birthdayDate;
 const DEFAULT_MEMORIES_DATE = DEFAULT_SETTINGS.memoriesModeDate;
-const INVITES = { anna: 'Анно', oksana: 'Оксано', nastya: 'Настю', alina: 'Аліно', kris: 'Кріс', bulka: 'Булко', anya: 'Аню', eva: 'Єво', maryna: 'Марино' };
+const MAX_VOTES = 3;
 
 const state = {
   partyDate: new Date(DEFAULT_PARTY_DATE),
@@ -14,21 +15,6 @@ const state = {
   weatherLat: 50.34,
   weatherLon: 26.64
 };
-
-function inviteSlug() {
-  return location.pathname.match(/\/invite\/([^/]+)/)?.[1]?.toLowerCase() || new URLSearchParams(location.search).get('invite')?.toLowerCase() || '';
-}
-
-function visitorId() {
-  const slug = inviteSlug();
-  if (slug && INVITES[slug]) return `invite-${slug}`;
-  let id = localStorage.getItem('partyVisitorId');
-  if (!id) {
-    id = `guest-${crypto.randomUUID()}`;
-    localStorage.setItem('partyVisitorId', id);
-  }
-  return id;
-}
 
 function toast(message) {
   const element = $('#toast');
@@ -64,9 +50,8 @@ function inMemoriesMode() {
   return new Date() >= state.memoriesDate;
 }
 
-function setupInvitation() {
-  const name = INVITES[inviteSlug()];
-  if (name) $('#inviteGreeting').textContent = `Привіт, ${name}! 👋 РАДІ, ЩО ТИ ТУТ`;
+function setupInvitation(guest) {
+  $('#inviteGreeting').textContent = `Привіт, ${guest.nickname}! 👋 РАДІ, ЩО ТИ ТУТ`;
 }
 
 function setupCountdown() {
@@ -161,12 +146,13 @@ function setupSettings() {
 
 function setupWishlist() {
   if (inMemoriesMode()) return;
-  $('#wishlist').innerHTML = '<div class="locked-wishlist"><div><p class="eyebrow">Wishlist</p><h2>🔒 Wishlist</h2><p>Скоро тут з’являться подарунки.<br>Очікуйте оновлення.</p></div><span class="lock-orbit" aria-hidden="true">✦</span></div>';
+  $('#wishlist').innerHTML = '<div class="locked-wishlist"><div><p class="eyebrow">Wishlist</p><h2>🔒 Wishlist</h2><p>Очікуйте оновлення.</p></div><span class="lock-orbit" aria-hidden="true">✦</span></div>';
 }
 
-function setupLocations() {
+function setupLocations(guest) {
   let locations = DEFAULT_LOCATIONS;
-  let votes = {};
+  let votes = {}; // placeId -> total vote count (both categories combined tally per place)
+  let myVotes = new Map(); // slot ('slot1'|'slot2'|'slot3') -> { placeId, venue }
   let venueChoice = ['home', 'out'].includes(localStorage.getItem('partyVenue')) ? localStorage.getItem('partyVenue') : '';
 
   const paintTabs = () => {
@@ -189,6 +175,8 @@ function setupLocations() {
     return '🍽';
   };
 
+  const myVotedPlaceIds = () => new Set([...myVotes.values()].map(vote => vote.placeId));
+
   const render = () => {
     paintTabs();
     const grid = $('#locationGrid');
@@ -196,29 +184,50 @@ function setupLocations() {
       grid.innerHTML = '<div class="route-empty venue-hint">✨ Обери формат вище — і побачиш варіанти для голосування.</div>';
       return;
     }
-    const visible = locations.filter(place => place.enabled !== false && (place.venue || 'out') !== (venueChoice === 'home' ? 'out' : 'home'));
+    const wantVenue = venueChoice === 'home' ? 'home' : 'out';
+    const orderKey = wantVenue === 'home' ? 'orderHome' : 'orderOut';
+    const visible = locations
+      .filter(place => place.enabled !== false && ['both', wantVenue].includes(place.venue || 'out'))
+      .sort((a, b) => (a[orderKey] ?? a.sortOrder ?? 0) - (b[orderKey] ?? b.sortOrder ?? 0));
     const total = Object.values(votes).reduce((sum, value) => sum + value, 0) || 1;
+    const mine = myVotedPlaceIds();
+    const votesUsed = myVotes.size;
     grid.innerHTML = visible.length ? visible.map((place, index) => {
       const result = Math.round((votes[place.id] || 0) / total * 100);
       const photo = place.photos?.[0] || place.photoUrl || '';
       const mapUrl = place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} Нетішин`)}`;
       const art = photo ? `<img class="place-image" src="${escapeHtml(photo)}" alt="${escapeHtml(place.name)}" loading="lazy">` : `<div class="place-art art-${index % 4}" aria-hidden="true" data-emoji="${emojiFor(place.category)}"></div>`;
-      return `<article class="place ${photo ? 'has-photo' : ''}">${art}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() ? 'disabled' : ''} type="button">${inMemoriesMode() ? 'Фінальний результат' : 'Голосувати'}</button></footer></div></article>`;
+      const voted = mine.has(place.id);
+      const locked = !voted && votesUsed >= MAX_VOTES;
+      const label = inMemoriesMode() ? 'Фінальний результат' : voted ? '✓ Твій голос · зняти' : locked ? 'Ліміт 3 голоси' : 'Голосувати';
+      return `<article class="place ${photo ? 'has-photo' : ''}">${art}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote ${voted ? 'is-voted' : ''}" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() || locked ? 'disabled' : ''} type="button">${label}</button></footer></div></article>`;
     }).join('') : '<div class="route-empty">У цьому форматі поки немає варіантів.</div>';
 
-    $$('.vote', grid).forEach(button => button.addEventListener('click', () => castVote(button.dataset.id)));
+    $$('.vote', grid).forEach(button => button.addEventListener('click', () => toggleVote(button.dataset.id)));
   };
 
-  const castVote = async id => {
+  const toggleVote = async placeId => {
+    const existingSlot = [...myVotes.entries()].find(([, vote]) => vote.placeId === placeId)?.[0];
     try {
-      await runTransaction(db, async transaction => {
-        const reference = doc(db, 'votes', visitorId());
-        if ((await transaction.get(reference)).exists()) throw new Error('already-voted');
-        transaction.set(reference, { invitationId: visitorId(), type: 'restaurant', restaurant: id, venue: venueChoice || 'out', timestamp: serverTimestamp() });
+      if (existingSlot) {
+        await deleteDoc(doc(db, 'votes', `${guest.guestId}_${existingSlot}`));
+        toast('Голос знято');
+        return;
+      }
+      if (myVotes.size >= MAX_VOTES) {
+        toast(`Максимум ${MAX_VOTES} голоси. Спочатку зніми один.`);
+        return;
+      }
+      const freeSlot = ['slot1', 'slot2', 'slot3'].find(slot => !myVotes.has(slot));
+      await setDoc(doc(db, 'votes', `${guest.guestId}_${freeSlot}`), {
+        guestId: guest.guestId,
+        placeId,
+        venue: venueChoice || 'out',
+        timestamp: serverTimestamp()
       });
       toast('Дякуємо за голос ✦');
-    } catch (error) {
-      toast(error.message === 'already-voted' ? 'Твій голос уже врахований.' : 'Помилка підключення. Спробуй ще раз.');
+    } catch {
+      toast('Помилка підключення. Спробуй ще раз.');
     }
   };
 
@@ -235,9 +244,14 @@ function setupLocations() {
 
   onSnapshot(collection(db, 'votes'), snapshot => {
     votes = {};
+    myVotes = new Map();
     snapshot.forEach(item => {
-      const id = item.data().restaurant || item.data().locationId;
-      if (id) votes[id] = (votes[id] || 0) + 1;
+      const data = item.data();
+      if (data.placeId) votes[data.placeId] = (votes[data.placeId] || 0) + 1;
+      if (data.guestId === guest.guestId) {
+        const slot = item.id.slice(guest.guestId.length + 1);
+        myVotes.set(slot, { placeId: data.placeId, venue: data.venue });
+      }
     });
     render();
   }, () => render());
@@ -264,7 +278,7 @@ function setupRoutes() {
       .filter(route => (route.direction || 'ТУДИ') === direction)
       .sort((a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0) || Number(b.recommended) - Number(a.recommended));
 
-    const trainCard = route => `<article class="route-card ${route.recommended ? 'recommended' : ''}"><div class="route-card-main"><span class="route-label">${escapeHtml(route.direction || 'Маршрут')}${route.recommended ? ' · ⭐ Найкращий варіант' : ''}</span><h3>🚆 №${escapeHtml(route.trainNumber)}</h3><p class="route-points"><b>${escapeHtml(route.from)}</b><span>→</span><b>${escapeHtml(route.to)}</b></p><div class="route-meta"><span><small>Відправлення</small>${escapeHtml(route.departure)}</span><span><small>Прибуття</small>${escapeHtml(route.arrival)}</span><span><small>У дорозі</small>${escapeHtml(route.duration)}</span><span><small>Пересадки</small>${escapeHtml(route.transfers || 'Прямий')}</span>${route.price ? `<span><small>Від</small>${escapeHtml(route.price)}</span>` : ''}</div></div><div class="route-actions"><button class="button primary buy-ticket" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Купити квиток ↗</button><small class="route-hint">Звідки: ${escapeHtml(route.from)} · Куди: ${escapeHtml(route.to)} · Дата: ${escapeHtml(route.date)}</small></div></article>`;
+    const trainCard = route => `<article class="route-card ${route.recommended ? 'recommended' : ''}"><div class="route-card-main"><span class="route-label">${escapeHtml(route.direction || 'Маршрут')}${route.dateNote ? ` · ${escapeHtml(route.dateNote)}` : ''}${route.recommended ? ' · ⭐ Найкращий варіант' : ''}</span><h3>🚆 №${escapeHtml(route.trainNumber)}</h3><p class="route-points"><b>${escapeHtml(route.from)}</b><span>→</span><b>${escapeHtml(route.to)}</b></p><div class="route-meta"><span><small>Відправлення</small>${escapeHtml(route.departure)}</span><span><small>Прибуття</small>${escapeHtml(route.arrival)}</span><span><small>У дорозі</small>${escapeHtml(route.duration)}</span><span><small>Пересадки</small>${escapeHtml(route.transfers || 'Прямий')}</span>${route.price ? `<span><small>Від</small>${escapeHtml(route.price)}</span>` : ''}</div></div><div class="route-actions"><button class="button primary buy-ticket" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Купити квиток ↗</button><small class="route-hint">Звідки: ${escapeHtml(route.from)} · Куди: ${escapeHtml(route.to)} · Дата: ${escapeHtml(route.date)}</small></div></article>`;
 
     const group = (label, items) => items.length ? `<h3 class="route-choice-label route-group-label">${label}</h3>${items.map(trainCard).join('')}` : '';
 
@@ -273,7 +287,7 @@ function setupRoutes() {
     const there = byDirection('ТУДИ');
     const back = byDirection('НАЗАД');
     list.innerHTML = there.length || back.length
-      ? group('Туди · 22 серпня', there) + group('Назад · 23 серпня', back)
+      ? group('Туди · до Кривина', there) + group('Назад · з Кривина', back)
       : '<div class="route-empty">Перевірених маршрутів поки немає. Вони з’являться тут одразу після додавання.</div>';
 
     // Force a reflow so the animation restarts every time the list is repainted (city switch, live Firestore update, etc.)
@@ -347,20 +361,21 @@ function setupMemoriesMode() {
   });
 }
 
-setupInvitation();
 setupSettings();
 setupCountdown();
 loadWeather();
 setupNews();
 setupChecklist();
 setupWishlist();
-setupLocations();
 setupRoutes();
 setupTicketDialog();
 setupMemoriesMode();
-ensureGuestSession().then(user => {
-  new LiveGallery({ ownerId: user.uid, displayName: INVITES[inviteSlug()] || 'Гість', toast }).init();
-}).catch(() => {
-  new LiveGallery({ ownerId: null, displayName: INVITES[inviteSlug()] || 'Гість', toast }).init();
-});
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+ensureGuestIdentity().then(guest => {
+  setupInvitation(guest);
+  setupLocations(guest);
+  new LiveGallery({ guest, toast }).init();
+}).catch(() => {
+  toast('Не вдалося визначити гостя. Онови сторінку.');
+});

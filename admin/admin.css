@@ -280,6 +280,8 @@ em { font-style: normal; color: var(--admin-gold); }
   padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; font-size: 13px;
 }
 .admin-table th { color: var(--admin-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.table-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.table-actions .button { padding: 6px 10px; font-size: 11px; }
 
 .config-readonly p {
   display: flex; justify-content: space-between; gap: 12px; padding: 10px 0;

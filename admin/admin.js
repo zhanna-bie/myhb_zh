@@ -1,5 +1,6 @@
 import { initAuth } from './js/auth.js';
 import { destroyDashboard, renderDashboard } from './js/dashboard.js';
+import { destroyGuests, renderGuests } from './js/guests.js';
 import { destroyGallery, renderGalleryAdmin } from './js/gallery.js';
 import { destroyRestaurants, renderRestaurants } from './js/restaurants.js';
 import { destroyRoutes, renderRoutes } from './js/routes.js';
@@ -11,6 +12,7 @@ import { $, $$, setActiveNav } from './js/helpers.js';
 
 const destroyers = {
   dashboard: destroyDashboard,
+  guests: destroyGuests,
   gallery: destroyGallery,
   restaurants: destroyRestaurants,
   routes: destroyRoutes,
@@ -22,6 +24,7 @@ const destroyers = {
 
 const renderers = {
   dashboard: renderDashboard,
+  guests: renderGuests,
   gallery: user => renderGalleryAdmin(user),
   restaurants: renderRestaurants,
   routes: renderRoutes,

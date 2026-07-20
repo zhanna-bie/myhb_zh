@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
 import { DEFAULT_ROUTES } from '../../js/defaults.js';
 import { $, $$, cleanObject, escapeHtml, firebaseErrorMessage, formToObject, mountView, setButtonLoading } from './helpers.js';
@@ -130,9 +130,22 @@ export function renderRoutes() {
     if (!confirmed) return;
     try {
       const batch = writeBatch(db);
+      const seedIds = new Set(SEED_ROUTES.map(route => route.id));
       SEED_ROUTES.forEach((route, index) => {
         const { id, ...data } = route;
         batch.set(doc(db, 'transport', id), { ...data, sortOrder: index, updatedAt: serverTimestamp() }, { merge: true });
+      });
+      // One-time cleanup: earlier seeds (before the Кривин rework) used a
+      // Славута-1-based dataset with a couple of ids that no longer exist in
+      // SEED_ROUTES (e.g. the old lviv-there-2). Remove only docs that both
+      // (a) aren't in the current seed list and (b) still carry that exact old
+      // signature, so a route she typed herself is never touched.
+      const existing = await getDocs(collection(db, 'transport'));
+      existing.docs.forEach(item => {
+        const data = item.data();
+        if (!seedIds.has(item.id) && (data.to === 'Славута-1' || data.from === 'Славута-1')) {
+          batch.delete(item.ref);
+        }
       });
       await batch.commit();
       toast.success('Орієнтовний розклад імпортовано');
