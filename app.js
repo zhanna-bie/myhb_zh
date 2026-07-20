@@ -11,7 +11,7 @@ const INVITES = { anna: 'Анно', oksana: 'Оксано', nastya: 'Настю'
 // venue: 'out' — святкування у закладі, 'home' — доставка додому, 'both' — і те, і те.
 const DEFAULT_LOCATIONS = [
   { id: 'drova', name: 'Дрова', category: 'Гриль · піца', venue: 'out', menuUrl: 'https://piceriya-drova-netishyn.choiceqr.com/online-menu', mapsUrl: 'https://maps.app.goo.gl/VKrPLR8kP5mp2xsW6' },
-  { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'both', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
+  { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'out', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
   { id: 'nonstop', name: 'Non Stop', category: 'Європейська', venue: 'both', menuUrl: 'https://nonstop.choiceqr.com/' },
   { id: 'lisovyi', name: 'Лісовий', category: 'Українська', venue: 'both', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
   { id: 'craft-pizza', name: 'Craft', category: 'Піца · суші · бургери', venue: 'home', menuUrl: 'https://menu.ps.me/eYPqnK2Jxq4' },
