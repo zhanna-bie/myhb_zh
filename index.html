@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#110c1b" />
+    <meta name="description" content="Birthday Party — запрошення на святкування та спільний альбом спогадів." />
+    <meta property="og:title" content="Birthday Party" />
+    <meta property="og:description" content="Усі деталі святкування в одному місці." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <title>Birthday Party</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div><div class="orb orb-a"></div><div class="orb orb-b"></div><div class="grid"></div>
+    <section class="gate" id="gate" aria-label="Початкова заставка">
+      <h1>Birthday<br><em>Party</em> by Zhanna</h1>
+      <button class="enter" id="enterBtn" type="button">ENTER <b>↗</b></button>
+    </section>
+
+    <div class="app" id="app" hidden>
+      <header class="nav">
+        <a class="brand" href="#home">BIRTHDAY<span class="dim">PARTY</span></a>
+        <nav aria-label="Головна навігація">
+          <a href="#home">Головна</a><a href="#wishlist">Вішліст</a><a href="#transport">Доїзд</a><a href="#locations">Локація</a><a href="#gallery">Фото</a>
+        </nav>
+        <button class="menu" id="menuBtn" type="button" aria-label="Відкрити меню" aria-expanded="false"><i></i><i></i><i></i></button>
+      </header>
+      <div class="mobile-nav" id="mobileNav" aria-hidden="true">
+        <p class="eyebrow">NAVIGATION / 2026</p>
+        <a href="#home">Головна <b>01</b></a><a href="#wishlist">Вішліст <b>02</b></a><a href="#transport">Доїзд <b>03</b></a><a href="#locations">Локація <b>04</b></a><a href="#checklist">Чек-лист <b>05</b></a><a href="#gallery">Галерея <b>06</b></a>
+      </div>
+      <main>
+        <div class="update-banner" id="newsBanner" hidden></div>
+        <section class="hero section" id="home">
+          <div class="hero-copy">
+            <p class="eyebrow" id="inviteGreeting">23–24 СЕРПНЯ 2026</p>
+            <h2 id="heroTitle">Привіт ❤️<br><em>Я рада, що ти тут.</em></h2>
+            <p class="lead" id="heroLead">Тут зібрала все важливе: маршрути, голосування, фото й корисну інформацію. Дякую, що проведеш цей день зі мною ❤️</p>
+            <a class="button primary" id="detailsButton" href="#countdown">До деталей <span>↓</span></a>
+          </div>
+          <div class="hero-art" aria-label="Декоративна ілюстрація святкування"><div class="planet"></div><div class="ring ring-one"></div><div class="ring ring-two"></div><div class="radar"><span></span></div><div class="signal">23–24<br>08 / 2026</div><div class="coordinates" id="coordinates">НЕТІШИН</div></div>
+        </section>
+
+        <section class="quick section" id="quick" aria-label="Швидкий доступ">
+          <a href="#wishlist"><i>✦</i><span>Wishlist</span><b>Подарунки</b></a><a href="#transport"><i>↠</i><span>Доїзд</span><b>Маршрути</b></a><a href="#locations"><i>⌖</i><span>Локація</span><b>Голосування</b></a><a href="#gallery"><i>◫</i><span>Фото</span><b>Додати кадр</b></a>
+        </section>
+
+        <section class="countdown section" id="countdown"><div><p class="eyebrow">Скоро зустрінемось</p><h2 id="countdownTitle">До святкування<br><em>залишилось</em></h2><p class="muted">23 August 2026</p></div><div class="clock" aria-live="polite"><div><b id="days">000</b><span>днів</span></div><div><b id="hours">00</b><span>годин</span></div><div><b id="mins">00</b><span>хвилин</span></div><div><b id="secs">00</b><span>секунд</span></div></div></section>
+
+        <section class="section block" id="weather"><div class="section-head"><div><p class="eyebrow">Погода</p><h2>Погода<br><em>у Нетішині</em></h2></div><p class="muted" id="weatherStatus">Завантажуємо дані для Нетішина…</p></div><div class="weather-current card" id="weatherCurrent" aria-live="polite"></div><div class="forecast" id="forecast" aria-live="polite"></div></section>
+
+        <section class="section block" id="wishlist"><div class="locked-wishlist"><div><p class="eyebrow">Wishlist</p><h2>🔒 Wishlist</h2><p>Скоро тут з’являться подарунки.<br>Очікуйте оновлення.</p></div><span class="lock-orbit" aria-hidden="true">✦</span></div></section>
+
+        <section class="section block" id="transport"><div class="section-head"><div><p class="eyebrow">Доїзд</p><h2>🚆 Як доїхати<br><em>до Нетішина</em></h2></div><p class="muted">23 серпня — до Нетішина · 24 серпня після 18:00 — назад</p></div><p class="route-choice-label">Оберіть своє місто</p><div class="route-tabs city-picker" role="tablist" aria-label="Місто відправлення" id="routeTabs"><button class="selected" data-city="Київ" type="button" role="tab" aria-selected="true">Київ</button><button data-city="Львів" type="button" role="tab" aria-selected="false">Львів</button><button data-city="Вінниця" type="button" role="tab" aria-selected="false">Вінниця</button></div><div class="route-list" id="routeList" role="tabpanel" aria-live="polite"><p class="muted">Завантажуємо маршрути…</p></div><aside class="ticket-reminder"><span aria-hidden="true">🎫</span><div><strong>Продаж квитків відкривається заздалегідь.</strong><br>Рекомендуємо поставити нагадування на <b>1–2 серпня.</b></div></aside></section>
+
+        <section class="section block" id="locations"><div class="section-head"><div><p class="eyebrow">Голосування</p><h2>Обери<br><em>заклад</em></h2></div><p class="muted">Один голос на персональне запрошення. Результати оновлюються одразу.</p></div><div class="location-grid" id="locationGrid" aria-live="polite"></div></section>
+
+        <section class="section block" id="checklist"><div class="section-head"><div><p class="eyebrow">Чек-лист</p><h2>Не забудь<br><em>взяти</em></h2></div><p class="muted">Можливо у програмі буде купання.<br>Тому рекомендуємо взяти усе необхідне.<br>Фінальна програма ще уточнюється.</p></div><div class="checklist" id="checklistItems"></div></section>
+
+        <section class="gallery section block" id="gallery"><div class="section-head"><div><p class="eyebrow">Спільний альбом</p><h2>Збережемо<br><em>момент</em></h2></div><label class="button ghost upload" id="uploadLabel">+ Завантажити фото<input type="file" accept="image/*" multiple hidden id="fileInput"></label></div><div class="gallery-stats" id="galleryStats" aria-live="polite"><span>📸 Завантажуємо фото…</span></div><div class="gallery-filters" role="tablist" aria-label="Фільтр фотографій"><button class="gallery-filter" data-filter="all" type="button" role="tab" aria-selected="false">📷 Усі фото</button><button class="gallery-filter selected" data-filter="newest" type="button" role="tab" aria-selected="true">🆕 Нові</button><button class="gallery-filter" data-filter="mine" type="button" role="tab" aria-selected="false">👤 Мої</button><button class="gallery-filter" data-filter="liked" type="button" role="tab" aria-selected="false">❤ Популярні</button></div><div class="activity-feed" id="activityFeed" aria-live="polite"></div><div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Завантажити фотографії">Перетягни фото сюди або натисни «Завантажити фото»</div><div class="upload-progress" id="uploadProgress" role="status" aria-live="polite" hidden></div><div class="masonry" id="masonry"><div class="gallery-skeleton"></div><div class="gallery-skeleton"></div><div class="gallery-skeleton"></div><div class="gallery-skeleton"></div></div><div id="gallerySentinel" aria-hidden="true"></div></section>
+      </main>
+      <dialog class="lightbox" id="lightbox" aria-label="Перегляд фотографії"><button id="closeLightbox" type="button" aria-label="Закрити">×</button><button id="viewerPrev" class="viewer-arrow" type="button" aria-label="Попереднє фото">←</button><figure><img id="lightboxImage" alt="Фото з галереї"><figcaption id="viewerCaption"></figcaption></figure><button id="viewerNext" class="viewer-arrow" type="button" aria-label="Наступне фото">→</button><div class="viewer-actions"><button id="viewerLike" class="button ghost" type="button">♥ 0</button><button id="sharePhoto" class="button ghost" type="button">Поділитися</button><a class="button primary" id="downloadPhoto" download>Скачати ↓</a></div></dialog>
+      <dialog class="ticket-dialog" id="ticketDialog" aria-labelledby="ticketDialogTitle"><button class="dialog-close" id="closeTicketDialog" type="button" aria-label="Закрити">×</button><p class="eyebrow">Квиток</p><h2 id="ticketDialogTitle">Дані маршруту</h2><div id="ticketDialogDetails"></div><button class="button primary" id="copyTicketDetails" type="button">Скопіювати дані</button></dialog>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+    <script>
+      // Inline on purpose: the gate and menu must keep working even when app.js
+      // (a module that imports Firebase from the network) fails to load.
+      (() => {
+        const gate = document.getElementById('gate');
+        const app = document.getElementById('app');
+        document.getElementById('enterBtn').addEventListener('click', () => {
+          if (gate.classList.contains('out')) return;
+          app.hidden = false;
+          app.classList.add('entering');
+          const reveal = () => app.classList.add('is-visible');
+          requestAnimationFrame(reveal);
+          setTimeout(reveal, 250);
+          gate.classList.add('out');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => {
+            gate.hidden = true;
+            app.classList.remove('entering');
+          }, 650);
+        });
+
+        const menu = document.getElementById('menuBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        const setMenu = open => {
+          mobileNav.classList.toggle('open', open);
+          menu.setAttribute('aria-expanded', String(open));
+          mobileNav.setAttribute('aria-hidden', String(!open));
+          document.body.classList.toggle('menu-open', open);
+        };
+        menu.addEventListener('click', () => setMenu(!mobileNav.classList.contains('open')));
+        mobileNav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)));
+      })();
+    </script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
