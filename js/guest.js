@@ -21,13 +21,39 @@ function writeStoredGuest(guest) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(guest));
 }
 
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Anonymous sign-in can transiently fail on a cold page load (slow network,
+ * IndexedDB/session setup racing the first request) — retry a couple of
+ * times instead of silently leaving auth.currentUser null, which used to let
+ * guests fill out the whole "Хто ти?" form only to hit a confusing error on
+ * the very last save.
+ */
+async function ensureAuthReady() {
+  for (const delay of [0, 600, 1500]) {
+    if (delay) await wait(delay);
+    try {
+      const user = await ensureGuestSession();
+      if (user) return true;
+    } catch { /* try again */ }
+  }
+  return false;
+}
+
 /** Resolves once a guest is identified — first from localStorage, otherwise via the gate dialog. */
 export async function ensureGuestIdentity() {
-  await ensureGuestSession().catch(() => {});
   const stored = readStoredGuest();
+  const authReady = await ensureAuthReady();
   if (stored) {
     showNotMeLink();
     return stored;
+  }
+  if (!authReady) {
+    const error = $('#guestGateError');
+    if (error) error.textContent = 'Не вдалося підключитись. Перевір інтернет і онови сторінку.';
+    $('#guestGate')?.showModal();
+    throw new Error('auth-unavailable');
   }
   const guest = await openGate();
   writeStoredGuest(guest);
@@ -113,6 +139,12 @@ function openGate() {
       const submitBtn = $('#guestNicknameSubmit');
       submitBtn.disabled = true;
       try {
+        // Last-resort safety net: if auth somehow still isn't ready here
+        // (shouldn't happen after ensureAuthReady(), but a raw
+        // "Cannot read properties of null" is a terrible error to show),
+        // try once more before giving up.
+        if (!auth.currentUser) await ensureGuestSession().catch(() => {});
+        if (!auth.currentUser) { setError('Немає з’єднання з сервером. Перевір інтернет і спробуй ще раз.'); return; }
         if (selected.nickname) {
           if (selected.nickname.toLowerCase() !== nickname.toLowerCase()) {
             setError('Нік не збігається з тим, який ти обрала раніше. Спробуй ще раз.');
