@@ -1,6 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
-import { $, $$, cleanObject, escapeHtml, formToObject, mountView, setButtonLoading, truncate } from './helpers.js';
+import { $, $$, cleanObject, escapeHtml, formToObject, mountView, setButtonLoading } from './helpers.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
 
@@ -17,10 +17,8 @@ function restaurantForm(data = {}, id = '') {
       <label>Cuisine<input name="category" required value="${escapeHtml(String(data.category || ''))}"></label>
       <label>Menu URL<input name="menuUrl" type="url" required value="${escapeHtml(String(data.menuUrl || ''))}"></label>
       <label>Google Maps URL<input name="mapsUrl" type="url" value="${escapeHtml(String(data.mapsUrl || ''))}"></label>
-      <label>Description<textarea name="description" required>${escapeHtml(String(data.description || ''))}</textarea></label>
-      <label>Average check<input name="price" value="${escapeHtml(String(data.price || ''))}"></label>
-      <label>Address<input name="address" value="${escapeHtml(String(data.address || ''))}"></label>
-      <label>Photo URLs (comma separated)<input name="photos" value="${escapeHtml((data.photos || []).join(', '))}"></label>
+      <label>Photo URLs (2–3, comma separated)<input name="photos" value="${escapeHtml((data.photos || []).join(', '))}"></label>
+      <label>Order<input name="sortOrder" type="number" min="0" value="${escapeHtml(String(data.sortOrder ?? data.order ?? 0))}"></label>
       <label class="checkbox"><input name="enabled" type="checkbox" ${data.enabled !== false ? 'checked' : ''}> Enabled</label>
     </form>
   `;
@@ -33,10 +31,8 @@ async function saveRestaurant(form) {
     category: raw.category,
     menuUrl: raw.menuUrl,
     mapsUrl: raw.mapsUrl || '',
-    description: raw.description,
-    price: raw.price || '',
-    address: raw.address || '',
-    photos: String(raw.photos || '').split(',').map(value => value.trim()).filter(Boolean).slice(0, 5),
+    photos: String(raw.photos || '').split(',').map(value => value.trim()).filter(Boolean).slice(0, 3),
+    sortOrder: Number(raw.sortOrder || 0),
     enabled: raw.enabled === 'on'
   });
   if (raw.id) {
@@ -52,7 +48,7 @@ export function renderRestaurants() {
   mountView(`
     <section class="view view-restaurants">
       <header class="view-header">
-        <div><p class="eyebrow">DECISION ROOM</p><h1>Restaurants</h1><p class="muted">Manage voting locations with live vote counts.</p></div>
+        <div><p class="eyebrow">LOCATIONS</p><h1>Restaurants</h1><p class="muted">Manage photos, links, order and live votes.</p></div>
         <button class="button primary" id="addRestaurantBtn" type="button">+ Add restaurant</button>
       </header>
       <div class="entity-grid" id="restaurantsGrid"><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
@@ -95,7 +91,8 @@ export function renderRestaurants() {
       root.innerHTML = '<div class="empty-state">No restaurants yet.</div>';
       return;
     }
-    root.innerHTML = snapshot.docs.map(item => {
+    const orderedDocs = [...snapshot.docs].sort((a, b) => (a.data().sortOrder ?? a.data().order ?? 0) - (b.data().sortOrder ?? b.data().order ?? 0));
+    root.innerHTML = orderedDocs.map(item => {
         const data = item.data();
         const count = votes[item.id] || 0;
         const percent = Math.round((count / totalVotes) * 100);
@@ -106,7 +103,6 @@ export function renderRestaurants() {
               <span class="badge">${data.enabled === false ? 'Disabled' : 'Live'}</span>
               <h3>${escapeHtml(data.name)}</h3>
               <p>${escapeHtml(data.category)}</p>
-              <small>${escapeHtml(truncate(data.description, 90))}</small>
               <div class="vote-bar"><i style="width:${percent}%"></i><span>${count} votes · ${percent}%</span></div>
             </div>
             <footer class="entity-card-actions">
@@ -119,7 +115,7 @@ export function renderRestaurants() {
         `;
     }).join('');
 
-    const docs = Object.fromEntries(snapshot.docs.map(item => [item.id, item.data()]));
+    const docs = Object.fromEntries(orderedDocs.map(item => [item.id, item.data()]));
 
     $$('.edit-restaurant', root).forEach(button => {
         button.addEventListener('click', () => {
@@ -153,7 +149,7 @@ export function renderRestaurants() {
           const data = docs[button.dataset.id];
           modal.open({
             title: data.name,
-            body: `<div class="preview-block"><p>${escapeHtml(data.description)}</p><p><a href="${escapeHtml(data.menuUrl)}" target="_blank" rel="noreferrer">Menu ↗</a></p><p><a href="${escapeHtml(data.mapsUrl || '#')}" target="_blank" rel="noreferrer">Google Maps ↗</a></p></div>`,
+            body: `<div class="preview-block">${data.photos?.[0] ? `<img class="modal-preview-image" src="${escapeHtml(data.photos[0])}" alt="${escapeHtml(data.name)}">` : ''}<p>${escapeHtml(data.category)}</p><p><a href="${escapeHtml(data.menuUrl)}" target="_blank" rel="noreferrer">Menu ↗</a></p><p><a href="${escapeHtml(data.mapsUrl || '#')}" target="_blank" rel="noreferrer">Google Maps ↗</a></p></div>`,
             size: 'modal-wide'
           });
         });

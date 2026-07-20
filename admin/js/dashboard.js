@@ -21,7 +21,7 @@ export function renderDashboard() {
         <div>
           <p class="eyebrow">OVERVIEW</p>
           <h1>Dashboard</h1>
-          <p class="muted">Live metrics across the birthday mission.</p>
+          <p class="muted">Live metrics for the public website.</p>
         </div>
       </header>
       <div class="stat-grid" id="dashStats">

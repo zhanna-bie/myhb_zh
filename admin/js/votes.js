@@ -11,7 +11,7 @@ export function renderVotes() {
   mountView(`
     <section class="view view-votes">
       <header class="view-header">
-        <div><p class="eyebrow">DECISION ROOM</p><h1>Votes</h1><p class="muted">Realtime restaurant voting statistics.</p></div>
+        <div><p class="eyebrow">VOTING</p><h1>Votes</h1><p class="muted">Realtime restaurant voting statistics.</p></div>
         <button class="button ghost" id="exportVotesBtn" type="button">Export CSV</button>
       </header>
       <div class="vote-summary" id="voteSummary"></div>

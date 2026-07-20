@@ -18,6 +18,7 @@ const DEFAULTS = {
   cloudinaryUploadPreset: 'gallery_upload',
   galleryPageSize: '20'
 };
+const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '🩱 Купальник', '🩴 Тапочки', '🏖 Рушник', '🧴 SPF', '👕 Змінний одяг'];
 
 export function renderSettings() {
   mountView(`
@@ -87,7 +88,7 @@ export function renderSettings() {
 
   track(onSnapshot(doc(db, 'checklist', CHECKLIST_ID), snapshot => {
     const items = snapshot.exists() ? snapshot.data().items || [] : [];
-    renderChecklistEditor(items.length ? items : ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі']);
+    renderChecklistEditor(items.length ? items : DEFAULT_CHECKLIST);
   }, () => {}));
 
   function renderChecklistEditor(items) {
@@ -108,7 +109,7 @@ export function renderSettings() {
 
   $('#addChecklistItem').addEventListener('click', () => {
     const current = [...$('#checklistForm').querySelectorAll('[name^="item-"]')].map(input => input.value);
-    renderChecklistEditor([...current, '✨ New item']);
+    renderChecklistEditor([...current, '✨ Новий пункт']);
   });
 
   $('#settingsForm').addEventListener('submit', async event => {

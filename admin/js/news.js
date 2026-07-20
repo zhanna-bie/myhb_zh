@@ -43,7 +43,7 @@ export function renderNews() {
   mountView(`
     <section class="view view-news">
       <header class="view-header">
-        <div><p class="eyebrow">TRANSMISSIONS</p><h1>News</h1><p class="muted">Broadcast updates to the public site banner.</p></div>
+        <div><p class="eyebrow">UPDATES</p><h1>News</h1><p class="muted">Publish updates to the public site banner.</p></div>
         <button class="button primary" id="addNewsBtn" type="button">+ Add news</button>
       </header>
       <div class="entity-list" id="newsList"><div class="skeleton-card"></div></div>
