@@ -547,3 +547,41 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 }
+
+/* style: soft glow orbs behind every section heading, consistently across the
+   site rather than only in the hero — same warm palette as the existing
+   body-level ambient light, just closer to the content it's accenting. */
+.section-head { position: relative; }
+.section-head::before {
+  content: ''; position: absolute; z-index: -1; top: -40px; left: -60px;
+  width: 22rem; height: 16rem; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 179, 0, .1), rgba(140, 80, 255, .05) 55%, transparent 72%);
+  filter: blur(6px);
+}
+
+/* style: decision-room feel for the venue-voting cards — a soft glow orb in
+   the top corner of every card, on top of the existing gradient/emoji art
+   (.art-0..3) so cards without a CMS photo read as colored, not flat. */
+.place-art::before {
+  content: ''; position: absolute; top: -20%; left: -10%; width: 65%; height: 65%;
+  border-radius: 50%; filter: blur(28px); opacity: .55; pointer-events: none;
+}
+.art-0::before { background: rgba(140, 80, 255, .45); }
+.art-1::before { background: rgba(166, 32, 73, .4); }
+.art-2::before { background: rgba(255, 179, 0, .35); }
+.art-3::before { background: rgba(80, 140, 220, .4); }
+
+/* style: same glow-orb + sparkle treatment as the locked-wishlist teaser,
+   applied to the real wish-card-public markup so it's ready the moment
+   the wishlist unlocks — content/prices/buttons untouched. */
+.wish-card-public { position: relative; overflow: hidden; }
+.wish-card-public::before {
+  content: ''; position: absolute; top: -18%; right: -12%; width: 55%; height: 55%;
+  border-radius: 50%; background: radial-gradient(circle, rgba(255, 179, 0, .3), transparent 70%);
+  filter: blur(12px); pointer-events: none;
+}
+.wish-card-public::after {
+  content: '✦'; position: absolute; top: 14px; right: 16px; color: var(--gold);
+  font-size: 15px; opacity: .8; text-shadow: 0 0 12px rgba(255, 179, 0, .5);
+}
+.wish-card-public > * { position: relative; }
