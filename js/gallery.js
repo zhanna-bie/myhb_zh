@@ -18,6 +18,8 @@ export class LiveGallery {
     this.loadingMore = false;
     this.observer = null;
     this.unsubscribe = null;
+    this.statsUnsubscribe = null;
+    this.stats = { total: 0, contributors: 0, latest: null };
     this.viewerIndex = 0;
     this.scale = 1;
     this.touchStart = null;
@@ -27,6 +29,7 @@ export class LiveGallery {
   init() {
     this.bindControls();
     this.subscribe();
+    this.subscribeStats();
     this.setupInfiniteScroll();
     this.setupViewer();
   }
@@ -44,6 +47,20 @@ export class LiveGallery {
     }, () => this.showGalleryError());
   }
 
+  subscribeStats() {
+    this.statsUnsubscribe = onSnapshot(collection(db, 'gallery'), snapshot => {
+      const photos = snapshot.docs.map(item => this.normalize(item));
+      photos.sort((a, b) => this.timeOf(b) - this.timeOf(a));
+      this.stats = {
+        total: photos.length,
+        contributors: new Set(photos.map(item => item.uploadedBy).filter(Boolean)).size,
+        latest: photos[0] || null
+      };
+      this.renderStats();
+      this.renderActivity(photos);
+    }, () => this.renderStats());
+  }
+
   normalize(snapshot) {
     const data = snapshot.data();
     return {
@@ -58,7 +75,7 @@ export class LiveGallery {
       fileSize: data.fileSize || 0,
       width: data.width || 0,
       height: data.height || 0,
-      name: data.name || 'Фото з місії',
+      name: data.name || 'Фото зі святкування',
       isNew: Date.now() - this.timeOf({ uploadedAt: data.uploadedAt || data.createdAt }) < NEW_BADGE_MS
     };
   }
@@ -87,46 +104,55 @@ export class LiveGallery {
     ['dragenter', 'dragover'].forEach(type => drop.addEventListener(type, event => { event.preventDefault(); drop.classList.add('over'); }));
     ['dragleave', 'drop'].forEach(type => drop.addEventListener(type, event => { event.preventDefault(); drop.classList.remove('over'); }));
     drop.addEventListener('drop', event => this.upload([...event.dataTransfer.files]));
+    drop.addEventListener('click', () => $('#fileInput').click());
+    drop.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        $('#fileInput').click();
+      }
+    });
   }
 
   filteredItems() {
     if (this.filter === 'mine') return this.items.filter(item => item.uploadedBy === this.ownerId);
     if (this.filter === 'liked') return [...this.items].sort((a, b) => b.likes - a.likes);
-    return this.items;
+    return [...this.items].sort((a, b) => this.timeOf(b) - this.timeOf(a));
   }
 
   render() {
     const items = this.filteredItems();
     const root = $('#masonry');
-    root.innerHTML = items.length ? items.map((item, index) => this.card(item, index)).join('') : '<div class="gallery-empty">Тут з’являться спільні спогади з місії ✦</div>';
+    root.innerHTML = items.length ? items.map((item, index) => this.card(item, index)).join('') : '<div class="gallery-empty">Поки що фотографій немає ❤️<br>Першим завантаж своє фото.</div>';
     $$('.photo-open', root).forEach(button => button.addEventListener('click', () => this.openViewer(Number(button.dataset.index))));
+    $$('.open-photo', root).forEach(button => button.addEventListener('click', () => this.openViewer(Number(button.dataset.index))));
     $$('.like-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.like(button.dataset.id); }));
     $$('.delete-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.remove(button.dataset.id); }));
-    this.renderStats(items);
+    $$('.download-photo', root).forEach(link => link.addEventListener('click', () => this.trackDownload(link.dataset.id)));
+    this.renderStats();
     this.renderActivity();
   }
 
   card(item, index) {
     const isNew = item.isNew ? '<span class="new-badge">✨ New</span>' : '';
-    const remove = item.uploadedBy === this.ownerId ? `<button class="delete-photo" data-id="${item.id}" aria-label="Видалити своє фото">×</button>` : '';
-    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-meta"><span>${escapeHtml(item.uploadedByName)}</span><button class="like-photo" data-id="${item.id}" type="button" aria-label="Вподобати фото">♥ ${item.likes}</button></div></article>`;
+    const remove = item.uploadedBy === this.ownerId ? `<button class="delete-photo" data-id="${item.id}" aria-label="Видалити своє фото" type="button">×</button>` : '';
+    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span><button class="like-photo" data-id="${item.id}" type="button" aria-label="Вподобати фото">♥ ${item.likes}</button></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
   }
 
-  renderStats(items) {
-    const contributors = new Set(this.items.map(item => item.uploadedBy)).size;
-    const latest = this.items[0];
-    $('#galleryStats').innerHTML = `<span>📸 ${this.items.length} фото</span><span>👥 ${contributors} авторів</span><span>🕒 ${latest ? relativeTime(latest.uploadedAt) : 'ще немає завантажень'}</span>`;
+  renderStats() {
+    const { total, contributors, latest } = this.stats;
+    const authorLabel = contributors === 1 ? 'автор' : contributors >= 2 && contributors <= 4 ? 'автори' : 'авторів';
+    $('#galleryStats').innerHTML = `<span>📸 ${total} фото</span><span>👥 ${contributors} ${authorLabel}</span><span>🕒 ${latest ? `Останнє: ${relativeTime(latest.uploadedAt)}` : 'Ще немає завантажень'}</span>`;
   }
 
-  renderActivity() {
+  renderActivity(source = this.items) {
     const grouped = new Map();
-    this.items.slice(0, 30).forEach(item => {
+    source.slice(0, 30).forEach(item => {
       const key = `${item.uploadedBy}-${new Date(this.timeOf(item)).toDateString()}`;
       const group = grouped.get(key) || { name: item.uploadedByName, count: 0, time: item.uploadedAt };
       group.count += 1;
       grouped.set(key, group);
     });
-    $('#activityFeed').innerHTML = [...grouped.values()].slice(0, 3).map(item => `<span><b>${escapeHtml(item.name)}</b> додала ${item.count} ${item.count === 1 ? 'фото' : 'фото'} · ${relativeTime(item.time)}</span>`).join('');
+    $('#activityFeed').innerHTML = [...grouped.values()].slice(0, 3).map(item => `<span><b>${escapeHtml(item.name)}</b>: ${item.count} фото · ${relativeTime(item.time)}</span>`).join('');
   }
 
   async loadMore() {
@@ -228,6 +254,14 @@ export class LiveGallery {
     }
   }
 
+  async trackDownload(id) {
+    try {
+      await updateDoc(doc(db, 'gallery', id), { downloads: increment(1) });
+    } catch {
+      this.toast('Не вдалося оновити лічильник завантажень.');
+    }
+  }
+
   async remove(id) {
     try {
       await deleteDoc(doc(db, 'gallery', id));
@@ -239,6 +273,7 @@ export class LiveGallery {
 
   openViewer(index) {
     this.viewerItems = this.filteredItems();
+    if (!this.viewerItems.length) return;
     this.viewerIndex = index;
     this.scale = 1;
     this.paintViewer();
@@ -255,11 +290,17 @@ export class LiveGallery {
     $('#downloadPhoto').href = item.photoUrl;
     $('#viewerLike').textContent = `♥ ${item.likes}`;
     $('#viewerLike').onclick = () => this.like(item.id);
-    $('#downloadPhoto').onclick = async () => {
+    $('#downloadPhoto').onclick = () => this.trackDownload(item.id);
+    $('#sharePhoto').onclick = async () => {
+      const shareData = { title: 'Birthday Party', text: `${item.uploadedByName} додали фото`, url: item.photoUrl };
       try {
-        await updateDoc(doc(db, 'gallery', item.id), { downloads: increment(1) });
-      } catch {
-        this.toast('Не вдалося оновити лічильник завантажень.');
+        if (navigator.share) await navigator.share(shareData);
+        else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(item.photoUrl);
+          this.toast('Посилання на фото скопійовано');
+        }
+      } catch (error) {
+        if (error?.name !== 'AbortError') this.toast('Не вдалося поділитися фото.');
       }
     };
   }
