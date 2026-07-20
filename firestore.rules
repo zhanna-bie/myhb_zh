@@ -5,10 +5,18 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'zhannabie@gmail.com';
     }
 
+    // Passwordless guest identity (see js/guest.js): a guest doc's `firebaseUid`
+    // is the anonymous-auth uid currently bound to that name+nickname pair.
+    function isGuestOwner(guestId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/guests/$(guestId))
+        && get(/databases/$(database)/documents/guests/$(guestId)).data.firebaseUid == request.auth.uid;
+    }
+
     function galleryFields() {
       return request.resource.data.keys().hasOnly([
-        'photoUrl', 'thumbnailUrl', 'uploadedBy', 'uploadedByName', 'uploadedAt',
-        'likes', 'downloads', 'fileSize', 'width', 'height', 'name', 'publicId'
+        'photoUrl', 'thumbnailUrl', 'uploadedBy', 'guestId', 'uploadedByName', 'uploadedAt',
+        'likedBy', 'downloads', 'fileSize', 'width', 'height', 'name', 'publicId'
       ]);
     }
 
@@ -23,25 +31,85 @@ service cloud.firestore {
       allow create: if signedAdmin() || (request.auth != null
         && request.resource.data.uploadedBy == request.auth.uid
         && galleryFields()
-        && request.resource.data.likes == 0
+        && request.resource.data.likedBy.size() == 0
         && request.resource.data.downloads == 0);
       allow update: if signedAdmin()
         || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'downloads'])
-          && request.resource.data.likes >= resource.data.likes
+          // download counter: monotonic, nothing else changes
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads'])
           && request.resource.data.downloads >= resource.data.downloads
+        )
+        || (
+          // like toggle: exactly the caller's own uid added or removed from
+          // likedBy, nothing else in the write. Keyed on request.auth.uid
+          // (not the human guestId) so this needs no reverse-lookup and
+          // can't be spoofed to like/unlike on someone else's behalf.
+          // Order-independent on purpose: arrayRemove() takes the uid out of
+          // wherever it sits, not necessarily the end of the list.
+          request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
+          && (
+            (
+              !(request.auth.uid in resource.data.likedBy)
+              && request.auth.uid in request.resource.data.likedBy
+              && request.resource.data.likedBy.size() == resource.data.likedBy.size() + 1
+              && request.resource.data.likedBy.hasAll(resource.data.likedBy)
+            )
+            || (
+              request.auth.uid in resource.data.likedBy
+              && !(request.auth.uid in request.resource.data.likedBy)
+              && resource.data.likedBy.size() == request.resource.data.likedBy.size() + 1
+              && resource.data.likedBy.hasAll(request.resource.data.likedBy)
+            )
+          )
         );
-      allow delete: if signedAdmin() || (request.auth != null && resource.data.uploadedBy == request.auth.uid);
+      allow delete: if signedAdmin() || (request.auth != null && (
+        resource.data.uploadedBy == request.auth.uid
+        || (resource.data.guestId is string && resource.data.guestId != '' && isGuestOwner(resource.data.guestId))
+      ));
     }
 
-    match /votes/{inviteId} {
+    // Up to 3 votes per guest, split across two venue categories. Doc id is
+    // always `{guestId}_slot1|slot2|slot3` — with only 3 valid ids per guest,
+    // the 3-vote cap is structural, not something rules have to count.
+    match /votes/{voteId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['invitationId', 'type', 'restaurant', 'venue', 'timestamp'])
-        && request.resource.data.invitationId == inviteId
-        && request.resource.data.type == 'restaurant'
-        && request.resource.data.restaurant is string
-        && (!('venue' in request.resource.data) || request.resource.data.venue in ['home', 'out']);
-      allow update, delete: if false;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasAll(['guestId', 'placeId', 'venue', 'timestamp'])
+        && request.resource.data.keys().hasOnly(['guestId', 'placeId', 'venue', 'timestamp'])
+        && request.resource.data.guestId is string
+        && request.resource.data.placeId is string
+        && request.resource.data.placeId != ''
+        && request.resource.data.venue in ['home', 'out']
+        && isGuestOwner(request.resource.data.guestId)
+        && voteId in [
+          request.resource.data.guestId + '_slot1',
+          request.resource.data.guestId + '_slot2',
+          request.resource.data.guestId + '_slot3'
+        ];
+      allow delete: if request.auth != null && isGuestOwner(resource.data.guestId);
+    }
+
+    // Public "Хто ти?" identity list. `name` is admin-set; `nickname` is
+    // claimed once by the guest themself (never overwritten while it's
+    // already set, unless it's an unchanged rebind to a new device — see
+    // js/guest.js) or reset by the admin.
+    match /guests/{guestId} {
+      allow read: if true;
+      allow create: if signedAdmin();
+      allow update: if signedAdmin() || (
+        request.auth != null
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickname', 'firebaseUid', 'updatedAt'])
+        && request.resource.data.firebaseUid == request.auth.uid
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() > 0
+        && (
+          !('nickname' in resource.data) || resource.data.nickname == ''
+          || request.resource.data.nickname == resource.data.nickname
+        )
+      );
+      allow delete: if signedAdmin();
     }
 
     match /wishlist/{itemId} {
