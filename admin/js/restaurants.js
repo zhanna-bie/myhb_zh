@@ -1,5 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
+import { DEFAULT_LOCATIONS } from '../../js/defaults.js';
 import { $, $$, cleanObject, compressImage, escapeHtml, firebaseErrorMessage, formToObject, mountView, setButtonLoading } from './helpers.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
@@ -86,14 +87,7 @@ async function saveRestaurant(form) {
 
 // Mirrors DEFAULT_LOCATIONS on the public site — one click copies them into
 // Firestore so photos/edits can be managed per-place without retyping.
-const SEED_PLACES = [
-  { id: 'drova', name: 'Дрова', category: 'Гриль · піца', venue: 'out', menuUrl: 'https://piceriya-drova-netishyn.choiceqr.com/online-menu', mapsUrl: 'https://maps.app.goo.gl/VKrPLR8kP5mp2xsW6' },
-  { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'out', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
-  { id: 'nonstop', name: 'Non Stop', category: 'Європейська', venue: 'both', menuUrl: 'https://nonstop.choiceqr.com/' },
-  { id: 'lisovyi', name: 'Лісовий', category: 'Українська', venue: 'both', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
-  { id: 'craft-pizza', name: 'Craft', category: 'Піца · суші · бургери', venue: 'home', menuUrl: 'https://menu.ps.me/eYPqnK2Jxq4' },
-  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' }
-];
+const SEED_PLACES = DEFAULT_LOCATIONS;
 
 export function renderRestaurants() {
   mountView(`
@@ -108,14 +102,16 @@ export function renderRestaurants() {
   `);
 
   $('#seedRestaurantsBtn').addEventListener('click', async () => {
-    const confirmed = await modal.confirm({ title: 'Імпорт закладів', body: 'Додати/оновити стандартний список із 8 закладів (як на сайті зараз)? Далі зможеш редагувати кожен і додати фото.', confirmLabel: 'Імпортувати' });
+    const confirmed = await modal.confirm({ title: 'Імпорт закладів', body: `Додати/оновити стандартний список із ${SEED_PLACES.length} закладів (як на сайті зараз)? Уже додані тобою заклади не постраждають. Далі зможеш редагувати кожен і додати фото.`, confirmLabel: 'Імпортувати' });
     if (!confirmed) return;
     try {
       const { writeBatch, doc: docRef } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
       const batch = writeBatch(db);
       SEED_PLACES.forEach((place, index) => {
         const { id, ...data } = place;
-        batch.set(docRef(db, 'restaurants', id), { ...data, enabled: true, sortOrder: index, updatedAt: serverTimestamp() }, { merge: true });
+        // No `enabled` here on purpose: merge:true must not silently re-show a
+        // place she already hid if this import is ever run a second time.
+        batch.set(docRef(db, 'restaurants', id), { ...data, sortOrder: index, updatedAt: serverTimestamp() }, { merge: true });
       });
       await batch.commit();
       toast.success('Стандартний список імпортовано');

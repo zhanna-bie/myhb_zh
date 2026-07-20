@@ -1,8 +1,14 @@
 import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase.js';
+import { DEFAULT_ROUTES } from '../../js/defaults.js';
 import { $, $$, cleanObject, escapeHtml, firebaseErrorMessage, formToObject, mountView, setButtonLoading } from './helpers.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
+
+// Mirrors DEFAULT_ROUTES on the public site — one click copies them into
+// Firestore (stable per-route ids, merge:true) so she can edit/replace them
+// with real confirmed schedules without retyping the whole list.
+const SEED_ROUTES = DEFAULT_ROUTES;
 
 const unsubscribers = [];
 function track(fn) { unsubscribers.push(fn); return fn; }
@@ -24,13 +30,14 @@ function routeForm(data = {}, id = '') {
       </label>
       <label>Напрямок
         <select name="direction">
-          <option value="ТУДИ" ${direction === 'ТУДИ' ? 'selected' : ''}>ТУДИ — 23 серпня, до Нетішина</option>
-          <option value="НАЗАД" ${direction === 'НАЗАД' ? 'selected' : ''}>НАЗАД — 24 серпня, з Нетішина</option>
+          <option value="ТУДИ" ${direction === 'ТУДИ' ? 'selected' : ''}>ТУДИ — 22 серпня, до Нетішина</option>
+          <option value="НАЗАД" ${direction === 'НАЗАД' ? 'selected' : ''}>НАЗАД — 23 серпня, з Нетішина</option>
         </select>
       </label>
       <label>Звідки (станція)<input name="from" required placeholder="Київ-Пасажирський" value="${escapeHtml(String(data.from || ''))}"></label>
-      <label>Куди (станція)<input name="to" required placeholder="Нетішин" value="${escapeHtml(String(data.to || ''))}"></label>
-      <label>Дата<input name="date" required placeholder="23.08.2026" value="${escapeHtml(String(data.date || ''))}"></label>
+      <label>Куди (станція)<input name="to" required placeholder="Славута-1" value="${escapeHtml(String(data.to || ''))}"></label>
+      <p class="form-hint">Нетішин не має власної станції — потяги йдуть до Славути-1 (~17 км, далі таксі) або Здолбунова/Шепетівки.</p>
+      <label>Дата<input name="date" required placeholder="22.08.2026" value="${escapeHtml(String(data.date || ''))}"></label>
       <label>Номер потяга<input name="trainNumber" required placeholder="143К" value="${escapeHtml(String(data.trainNumber || ''))}"></label>
       <label>Відправлення<input name="departure" required placeholder="07:32" value="${escapeHtml(String(data.departure || ''))}"></label>
       <label>Прибуття<input name="arrival" required placeholder="12:45" value="${escapeHtml(String(data.arrival || ''))}"></label>
@@ -57,7 +64,7 @@ function bindRouteAutofill(panel) {
   const apply = () => {
     const city = form.querySelector('[name="city"]').value;
     const away = form.querySelector('[name="direction"]').value === 'ТУДИ';
-    const values = { from: away ? city : 'Нетішин', to: away ? 'Нетішин' : city, date: away ? '23.08.2026' : '24.08.2026' };
+    const values = { from: away ? city : 'Славута-1', to: away ? 'Славута-1' : city, date: away ? '22.08.2026' : '23.08.2026' };
     fields.forEach(field => { if (!field.dataset.touched) field.value = values[field.name]; });
   };
   form.querySelector('[name="city"]').addEventListener('change', apply);
@@ -111,11 +118,28 @@ export function renderRoutes() {
     <section class="view view-routes">
       <header class="view-header">
         <div><p class="eyebrow">ДОЇЗД</p><h1>Маршрути</h1><p class="muted">Потяги до Нетішина й назад. Все, що додаси тут, одразу з'явиться на сайті.</p></div>
-        <button class="button primary" id="addRouteBtn" type="button">+ Додати маршрут</button>
+        <div><button class="button ghost" id="seedRoutesBtn" type="button">Імпортувати орієнтовний розклад</button>
+        <button class="button primary" id="addRouteBtn" type="button">+ Додати маршрут</button></div>
       </header>
       <div class="entity-list" id="routesList"><div class="skeleton-card"></div></div>
     </section>
   `);
+
+  $('#seedRoutesBtn').addEventListener('click', async () => {
+    const confirmed = await modal.confirm({ title: 'Імпорт маршрутів', body: `Додати/оновити орієнтовний розклад із ${SEED_ROUTES.length} маршрутів для Києва, Львова й Вінниці (як зараз на сайті)? Уже додані тобою маршрути не постраждають. Розклад демонстраційний — онови номери потягів і час, коли звіриш їх на uz.gov.ua.`, confirmLabel: 'Імпортувати' });
+    if (!confirmed) return;
+    try {
+      const batch = writeBatch(db);
+      SEED_ROUTES.forEach((route, index) => {
+        const { id, ...data } = route;
+        batch.set(doc(db, 'transport', id), { ...data, sortOrder: index, updatedAt: serverTimestamp() }, { merge: true });
+      });
+      await batch.commit();
+      toast.success('Орієнтовний розклад імпортовано');
+    } catch (error) {
+      toast.error(firebaseErrorMessage(error));
+    }
+  });
 
   $('#addRouteBtn').addEventListener('click', () => {
     modal.open({
@@ -146,7 +170,7 @@ export function renderRoutes() {
     const routes = snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0));
     const root = $('#routesList');
     if (!routes.length) {
-      root.innerHTML = '<div class="empty-state">Маршрутів ще немає. Натисни «+ Додати маршрут» — форма сама підставить станції й дати.</div>';
+      root.innerHTML = '<div class="empty-state">У базі поки порожньо — сайт показує орієнтовний розклад. Натисни «Імпортувати орієнтовний розклад», щоб керувати маршрутами тут, або «+ Додати маршрут» для свого варіанту.</div>';
       return;
     }
     root.innerHTML = routes.map(route => `
