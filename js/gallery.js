@@ -143,7 +143,8 @@ export class LiveGallery {
   card(item, index) {
     const isNew = item.isNew ? '<span class="new-badge">✨ New</span>' : '';
     const remove = item.uploadedBy === this.ownerId ? `<button class="delete-photo" data-id="${item.id}" aria-label="Видалити своє фото" type="button">×</button>` : '';
-    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo" data-id="${item.id}" type="button" aria-label="Вподобати фото">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
+    const liked = this.likedIds().has(item.id);
+    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo ${liked ? 'liked' : ''}" data-id="${item.id}" type="button" aria-label="Вподобати фото" aria-pressed="${liked}">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
   }
 
   renderStats() {
@@ -254,9 +255,21 @@ export class LiveGallery {
     });
   }
 
+  likedIds() {
+    try { return new Set(JSON.parse(localStorage.getItem('partyLikedPhotos') || '[]')); } catch { return new Set(); }
+  }
+
   async like(id) {
+    const liked = this.likedIds();
+    if (liked.has(id)) {
+      this.toast('Ти вже вподобала це фото ♥');
+      return;
+    }
     try {
       await updateDoc(doc(db, 'gallery', id), { likes: increment(1) });
+      liked.add(id);
+      localStorage.setItem('partyLikedPhotos', JSON.stringify([...liked]));
+      this.render();
     } catch {
       this.toast('Не вдалося поставити лайк.');
     }

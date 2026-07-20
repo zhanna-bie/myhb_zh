@@ -1,13 +1,13 @@
-import { initAuth } from './auth.js';
-import { destroyDashboard, renderDashboard } from './dashboard.js';
-import { destroyGallery, renderGalleryAdmin } from './gallery.js';
-import { destroyRestaurants, renderRestaurants } from './restaurants.js';
-import { destroyRoutes, renderRoutes } from './routes.js';
-import { destroyNews, renderNews } from './news.js';
-import { destroyWishlist, renderWishlist } from './wishlist.js';
-import { destroyVotes, renderVotes } from './votes.js';
-import { destroySettings, renderSettings } from './settings.js';
-import { $, $$, setActiveNav } from './helpers.js';
+import { initAuth } from './js/auth.js';
+import { destroyDashboard, renderDashboard } from './js/dashboard.js';
+import { destroyGallery, renderGalleryAdmin } from './js/gallery.js';
+import { destroyRestaurants, renderRestaurants } from './js/restaurants.js';
+import { destroyRoutes, renderRoutes } from './js/routes.js';
+import { destroyNews, renderNews } from './js/news.js';
+import { destroyWishlist, renderWishlist } from './js/wishlist.js';
+import { destroyVotes, renderVotes } from './js/votes.js';
+import { destroySettings, renderSettings } from './js/settings.js';
+import { $, $$, setActiveNav } from './js/helpers.js';
 
 const destroyers = {
   dashboard: destroyDashboard,

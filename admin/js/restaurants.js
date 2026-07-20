@@ -91,10 +91,8 @@ const SEED_PLACES = [
   { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'both', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
   { id: 'nonstop', name: 'Non Stop', category: 'Європейська', venue: 'both', menuUrl: 'https://nonstop.choiceqr.com/' },
   { id: 'lisovyi', name: 'Лісовий', category: 'Українська', venue: 'both', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
-  { id: 'khutorok', name: 'Хуторок', category: 'Українська', venue: 'out', menuUrl: 'https://www.instagram.com/p/CfwKMILogTG/?img_index=3' },
   { id: 'craft-pizza', name: 'Craft', category: 'Піца · суші · бургери', venue: 'home', menuUrl: 'https://menu.ps.me/eYPqnK2Jxq4' },
-  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' },
-  { id: 'belissimo', name: 'Беліссімо', category: 'Піца', venue: 'home', menuUrl: 'https://belissimopizza-netishyn.vidido.info/' }
+  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' }
 ];
 
 export function renderRestaurants() {

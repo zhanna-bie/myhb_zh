@@ -324,6 +324,10 @@ em { font-style: normal; color: var(--admin-gold); }
 .modal-root {
   position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px;
 }
+/* `display: grid` above overrides the [hidden] attribute, so without this rule the
+   invisible modal layer permanently covers the page and swallows every click —
+   the login form (and the whole CMS) appeared completely dead. */
+.modal-root[hidden] { display: none !important; }
 .modal-root.show .modal-backdrop { opacity: 1; }
 .modal-root.show .modal-panel { transform: none; opacity: 1; }
 .modal-backdrop {

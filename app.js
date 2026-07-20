@@ -14,10 +14,19 @@ const DEFAULT_LOCATIONS = [
   { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'both', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
   { id: 'nonstop', name: 'Non Stop', category: 'Європейська', venue: 'both', menuUrl: 'https://nonstop.choiceqr.com/' },
   { id: 'lisovyi', name: 'Лісовий', category: 'Українська', venue: 'both', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
-  { id: 'khutorok', name: 'Хуторок', category: 'Українська', venue: 'out', menuUrl: 'https://www.instagram.com/p/CfwKMILogTG/?img_index=3' },
   { id: 'craft-pizza', name: 'Craft', category: 'Піца · суші · бургери', venue: 'home', menuUrl: 'https://menu.ps.me/eYPqnK2Jxq4' },
-  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' },
-  { id: 'belissimo', name: 'Беліссімо', category: 'Піца', venue: 'home', menuUrl: 'https://belissimopizza-netishyn.vidido.info/' }
+  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' }
+];
+
+// Guidance cards shown per city until real train routes are added in the admin
+// panel (collection `transport`). `note` marks them as simple text cards.
+const DEFAULT_ROUTES = [
+  { city: 'Київ', title: '🚆 Потягом', note: 'Шукай прямі потяги Київ → Нетішин на 22–23 серпня в застосунку Укрзалізниці. Якщо прямого немає — бери квиток до Славути чи Здолбунова, звідти ~30–50 км.', origin: 'Київ' },
+  { city: 'Київ', title: '🚗 Автомобілем', note: '≈330 км трасою через Житомир і Новоград-Волинський, орієнтовно 4–4.5 години в дорозі.', origin: 'Київ' },
+  { city: 'Львів', title: '🚆 Потягом через Здолбунів', note: 'Більшість потягів зі Львова в бік Києва зупиняються у Здолбунові — звідти ~50 км до Нетішина (таксі або скажи нам, зустрінемо).', origin: 'Львів' },
+  { city: 'Львів', title: '🚗 Автомобілем', note: '≈270 км через Рівне, орієнтовно 4 години в дорозі.', origin: 'Львів' },
+  { city: 'Вінниця', title: '🚆 Потягом через Шепетівку', note: 'Шепетівка — велика вузлова станція за ~45 км від Нетішина; далі приміський потяг на Славуту/Нетішин або авто.', origin: 'Вінниця' },
+  { city: 'Вінниця', title: '🚗 Автомобілем', note: '≈220 км через Хмельницький, орієнтовно 3.5 години в дорозі.', origin: 'Вінниця' }
 ];
 
 const state = {
@@ -190,6 +199,17 @@ function setupLocations() {
     $('#venueStepLabel').hidden = !venueChoice;
   };
 
+  const emojiFor = (category = '') => {
+    const c = category.toLowerCase();
+    if (c.includes('піца')) return '🍕';
+    if (c.includes('італ')) return '🍝';
+    if (c.includes('кебаб') || c.includes('шаурма')) return '🌯';
+    if (c.includes('суші')) return '🍣';
+    if (c.includes('гриль')) return '🔥';
+    if (c.includes('україн')) return '🥟';
+    return '🍽';
+  };
+
   const render = () => {
     paintTabs();
     const grid = $('#locationGrid');
@@ -203,7 +223,8 @@ function setupLocations() {
       const result = Math.round((votes[place.id] || 0) / total * 100);
       const photo = place.photos?.[0] || place.photoUrl || '';
       const mapUrl = place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} Нетішин`)}`;
-      return `<article class="place ${photo ? 'has-photo' : ''}">${photo ? `<img class="place-image" src="${escapeHtml(photo)}" alt="${escapeHtml(place.name)}" loading="lazy">` : ''}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() ? 'disabled' : ''} type="button">${inMemoriesMode() ? 'Фінальний результат' : 'Голосувати'}</button></footer></div></article>`;
+      const art = photo ? `<img class="place-image" src="${escapeHtml(photo)}" alt="${escapeHtml(place.name)}" loading="lazy">` : `<div class="place-art art-${index % 4}" aria-hidden="true" data-emoji="${emojiFor(place.category)}"></div>`;
+      return `<article class="place ${photo ? 'has-photo' : ''}">${art}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() ? 'disabled' : ''} type="button">${inMemoriesMode() ? 'Фінальний результат' : 'Голосувати'}</button></footer></div></article>`;
     }).join('') : '<div class="route-empty">У цьому форматі поки немає варіантів.</div>';
 
     $$('.vote', grid).forEach(button => button.addEventListener('click', () => castVote(button.dataset.id)));
@@ -258,20 +279,27 @@ function setupRoutes() {
       return;
     }
 
-    const selection = routes.filter(route => route.city === active).sort((a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0) || Number(b.recommended) - Number(a.recommended));
+    let selection = routes.filter(route => route.city === active).sort((a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0) || Number(b.recommended) - Number(a.recommended));
+    if (!selection.length) selection = DEFAULT_ROUTES.filter(route => route.city === active);
+
+    const simpleCard = route => `<article class="route-card route-simple"><div class="route-card-main"><span class="route-label">Рекомендація</span><h3>${escapeHtml(route.title)}</h3><p class="route-note">${escapeHtml(route.note)}</p></div><div class="route-actions"><a class="copy-route" href="https://booking.uz.gov.ua/" target="_blank" rel="noreferrer">Розклад УЗ ↗</a><a class="button primary" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent('Нетішин')}" target="_blank" rel="noreferrer">Маршрут на мапі ↗</a></div></article>`;
+    const trainCard = route => `<article class="route-card ${route.recommended ? 'recommended' : ''}"><div class="route-card-main"><span class="route-label">${escapeHtml(route.direction || 'Маршрут')}${route.recommended ? ' · ⭐ Найкращий варіант' : ''}</span><h3>🚆 №${escapeHtml(route.trainNumber)}</h3><p class="route-points"><b>${escapeHtml(route.from)}</b><span>→</span><b>${escapeHtml(route.to)}</b></p><div class="route-meta"><span><small>Відправлення</small>${escapeHtml(route.departure)}</span><span><small>Прибуття</small>${escapeHtml(route.arrival)}</span><span><small>У дорозі</small>${escapeHtml(route.duration)}</span><span><small>Пересадки</small>${escapeHtml(route.transfers || 'Прямий')}</span>${route.price ? `<span><small>Від</small>${escapeHtml(route.price)}</span>` : ''}</div></div><div class="route-actions"><button class="copy-route" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Скопіювати маршрут</button><button class="button primary buy-ticket" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Купити квиток ↗</button></div></article>`;
 
     // Reset animation class first so re-selecting the same city / re-rendering still replays it
     list.classList.remove('route-list-in');
-    list.innerHTML = selection.length ? selection.map(route => `<article class="route-card ${route.recommended ? 'recommended' : ''}"><div class="route-card-main"><span class="route-label">${escapeHtml(route.direction || 'Маршрут')}${route.recommended ? ' · ⭐ Найкращий варіант' : ''}</span><h3>🚆 №${escapeHtml(route.trainNumber)}</h3><p class="route-points"><b>${escapeHtml(route.from)}</b><span>→</span><b>${escapeHtml(route.to)}</b></p><div class="route-meta"><span><small>Відправлення</small>${escapeHtml(route.departure)}</span><span><small>Прибуття</small>${escapeHtml(route.arrival)}</span><span><small>У дорозі</small>${escapeHtml(route.duration)}</span><span><small>Пересадки</small>${escapeHtml(route.transfers || 'Прямий')}</span>${route.price ? `<span><small>Від</small>${escapeHtml(route.price)}</span>` : ''}</div></div><div class="route-actions"><button class="copy-route" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Скопіювати маршрут</button><button class="button primary buy-ticket" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Купити квиток ↗</button></div></article>`).join('') : '<div class="route-empty">Перевірених маршрутів поки немає. Вони з’являться тут одразу після додавання.</div>';
+    list.innerHTML = selection.map(route => route.note ? simpleCard(route) : trainCard(route)).join('');
 
     // Force a reflow so the animation restarts every time the list is repainted (city switch, live Firestore update, etc.)
     void list.offsetWidth;
     list.classList.add('route-list-in');
 
-    $$('.copy-route').forEach(button => button.addEventListener('click', async () => {
-      const route = JSON.parse(decodeURIComponent(button.dataset.route));
-      copyText(`${route.from} → ${route.to}\nДата: ${route.date}\nПотяг №${route.trainNumber}`, 'Маршрут скопійовано');
-    }));
+    $$('.copy-route').forEach(button => {
+      if (!button.dataset.route) return; // simple guidance cards use plain links here
+      button.addEventListener('click', async () => {
+        const route = JSON.parse(decodeURIComponent(button.dataset.route));
+        copyText(`${route.from} → ${route.to}\nДата: ${route.date}\nПотяг №${route.trainNumber}`, 'Маршрут скопійовано');
+      });
+    });
 
     $$('.buy-ticket').forEach(button => button.addEventListener('click', () => openTicketDialog(JSON.parse(decodeURIComponent(button.dataset.route)))));
   };

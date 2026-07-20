@@ -1,4 +1,4 @@
-const CACHE = 'birthday-party-v5';
+const CACHE = 'birthday-party-v6';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './js/firebase.js', './js/utils.js', './js/gallery.js', './manifest.webmanifest'];
 
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
@@ -11,7 +11,10 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
   event.respondWith(
-    fetch(request)
+    // 'no-cache' forces revalidation with the server (cheap 304s): without it the
+    // fetch can be answered by the HTTP cache and guests keep seeing a stale site
+    // for up to 10 minutes after each deploy.
+    fetch(request, { cache: 'no-cache' })
       .then(response => {
         if (response.ok) {
           const copy = response.clone();
