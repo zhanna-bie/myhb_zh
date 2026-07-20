@@ -65,6 +65,7 @@ em { font-style: normal; color: var(--admin-gold); }
   display: grid; place-items: center; color: var(--admin-gold);
   font-family: Unbounded, sans-serif;
 }
+.admin-brand b { color: var(--admin-gold); font: inherit; }
 .dim { color: var(--admin-gold); }
 
 .button, .icon-button {
@@ -111,6 +112,10 @@ em { font-style: normal; color: var(--admin-gold); }
 .entity-form textarea { min-height: 110px; resize: vertical; }
 .checkbox { display: flex !important; align-items: center; gap: 10px; }
 .form-error { color: #ffb4c3; min-height: 1.2em; font-size: 13px; }
+.form-hint {
+  margin: 2px 0 0; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.5;
+  color: var(--admin-muted); background: rgba(255, 189, 74, 0.07); border: 1px solid rgba(255, 189, 74, 0.22);
+}
 
 .admin-shell {
   position: relative; z-index: 2; min-height: 100svh;
@@ -381,6 +386,8 @@ em { font-style: normal; color: var(--admin-gold); }
   outline: 2px solid var(--admin-gold);
   outline-offset: 2px;
 }
+
+@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

@@ -6,7 +6,7 @@ import { destroyRoutes, renderRoutes } from './routes.js';
 import { destroyNews, renderNews } from './news.js';
 import { destroyWishlist, renderWishlist } from './wishlist.js';
 import { destroyVotes, renderVotes } from './votes.js';
-import { destroySettings, renderGuests, renderSettings } from './settings.js';
+import { destroySettings, renderSettings } from './settings.js';
 import { $, $$, setActiveNav } from './helpers.js';
 
 const destroyers = {
@@ -17,8 +17,7 @@ const destroyers = {
   news: destroyNews,
   wishlist: destroyWishlist,
   votes: destroyVotes,
-  settings: destroySettings,
-  guests: destroySettings
+  settings: destroySettings
 };
 
 const renderers = {
@@ -29,8 +28,7 @@ const renderers = {
   news: renderNews,
   wishlist: renderWishlist,
   votes: renderVotes,
-  settings: renderSettings,
-  guests: renderGuests
+  settings: renderSettings
 };
 
 let currentView = 'dashboard';
