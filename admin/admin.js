@@ -67,6 +67,9 @@ function bindNavigation() {
 initAuth(user => {
   if (!user) return;
   currentUser = user;
+  // Show which account is signed in — permission problems are then self-evident.
+  const meta = $('.topbar-meta strong');
+  if (meta) meta.textContent = user.email;
   bindNavigation();
   navigate('dashboard');
 });

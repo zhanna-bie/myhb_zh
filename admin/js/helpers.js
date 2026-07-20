@@ -12,7 +12,7 @@ export function firebaseErrorMessage(error) {
   if (!error || typeof error !== 'object') return 'Невідома помилка';
   const code = /** @type {{ code?: string, message?: string }} */ (error).code || '';
   const map = {
-    'permission-denied': 'Немає доступу. Перевір Firestore Rules.',
+    'permission-denied': 'Немає доступу: Firestore Rules не пускають цей запис. Звір правила в Console → Firestore → Rules з файлом firestore.rules у репозиторії та переконайся, що ти увійшла як zhannabie@gmail.com (email видно в шапці адмінки).',
     'unavailable': 'Firebase тимчасово недоступний.',
     'not-found': 'Документ не знайдено.',
     'already-exists': 'Запис уже існує.',
