@@ -1,5 +1,6 @@
 import { collection, doc, onSnapshot, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db, firebaseConfig } from '../../js/firebase.js';
+import { DEFAULT_CHECKLIST, DEFAULT_SETTINGS, DEFAULT_SWIM_CHECKLIST } from '../../js/defaults.js';
 import { $, $$, escapeHtml, mountView, setButtonLoading } from './helpers.js';
 import { toast } from './toast.js';
 
@@ -9,17 +10,8 @@ const unsubscribers = [];
 function track(fn) { unsubscribers.push(fn); return fn; }
 export function destroySettings() { unsubscribers.splice(0).forEach(unsub => unsub()); }
 
-const DEFAULTS = {
-  birthdayDate: '2026-08-23T12:00:00+03:00',
-  memoriesModeDate: '2026-08-25T00:00:00+03:00',
-  weatherLat: '50.34',
-  weatherLon: '26.64',
-  cloudinaryCloudName: 'mh1qp8ls',
-  cloudinaryUploadPreset: 'gallery_upload',
-  galleryPageSize: '20'
-};
-const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '👕 Змінний одяг'];
-const DEFAULT_SWIM = ['🩱 Купальник', '🧴 SPF', '🏖 Рушник', '🩴 Тапочки'];
+const DEFAULTS = DEFAULT_SETTINGS;
+const DEFAULT_SWIM = DEFAULT_SWIM_CHECKLIST;
 
 export function renderSettings() {
   mountView(`

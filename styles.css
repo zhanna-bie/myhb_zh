@@ -96,7 +96,6 @@ a{color:inherit;text-decoration:none}
 .route-meta{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
 .route-meta span{padding:6px 8px;background:rgba(255,255,255,.06);font-size:11px}
 .route-actions{display:flex;align-items:center;gap:10px}
-.copy-route{border:1px solid var(--line);background:transparent;color:var(--paper);padding:11px;font:700 10px Manrope;cursor:pointer}
 .location-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .place{min-height:390px;padding:23px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;background-color:#20182d;background-size:cover;background-position:center;border:1px solid var(--line)}
 .place:before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(8,6,12,.95),rgba(8,6,12,.05) 75%)}
@@ -353,8 +352,11 @@ body { font-size: 18px; line-height: 1.55; }
 .route-meta span { display: grid; gap: 4px; min-height: 72px; padding: 10px; font-size: 17px; background: rgba(255,255,255,.06); }
 .route-meta small { color: var(--muted); font-size: 12px; }
 .route-actions { align-self: stretch; align-items: stretch; flex-direction: column; justify-content: center; min-width: 210px; }
-.route-actions .button, .copy-route { min-height: 50px; margin: 0; font-size: 17px; }
-.copy-route { border-radius: 999px; padding: 12px 16px; }
+.route-actions .button { min-height: 50px; margin: 0; font-size: 17px; }
+.route-group-label { margin-top: 8px; }
+.route-group-label:first-child { margin-top: 0; }
+.route-hint { display: block; margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
+.route-disclaimer { margin: 14px 0 0; font-size: 12px; }
 
 /* Route list entrance animation — replayed on city switch and on live Firestore updates.
    Respects prefers-reduced-motion via the global override at the bottom of this file. */
@@ -440,7 +442,7 @@ body { font-size: 18px; line-height: 1.55; }
   .route-meta { grid-template-columns: 1fr 1fr; }
   .route-meta span { min-height: 68px; font-size: 17px; }
   .route-actions { min-width: 0; display: grid; grid-template-columns: 1fr; }
-  .route-actions .button, .copy-route { width: 100%; font-size: 16px; }
+  .route-actions .button { width: 100%; font-size: 16px; }
   .ticket-reminder { font-size: 17px; }
   .place { min-height: 420px; }
   .place-content { padding: 24px; }
@@ -526,10 +528,6 @@ body {
 .art-2 { background: linear-gradient(150deg, #3c2a14, #221507 72%); }
 .art-3 { background: linear-gradient(150deg, #1e3040, #101a24 70%); }
 
-/* Simple guidance route cards (shown until real trains are added in admin). */
-.route-simple h3 { font-size: clamp(22px, 2.6vw, 28px); }
-.route-note { margin: 8px 0 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
-.route-actions .copy-route { display: inline-flex; align-items: center; justify-content: center; text-align: center; }
 
 /* One like per device: the pressed heart turns gold and stays. */
 .like-photo.liked { background: var(--gold); color: var(--ink); }

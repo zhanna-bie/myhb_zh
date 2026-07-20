@@ -2,32 +2,11 @@ import { collection, doc, onSnapshot, runTransaction, serverTimestamp } from 'ht
 import { db, ensureGuestSession } from './js/firebase.js';
 import { $, $$, escapeHtml } from './js/utils.js';
 import { LiveGallery } from './js/gallery.js';
+import { DEFAULT_CHECKLIST, DEFAULT_LOCATIONS, DEFAULT_ROUTES, DEFAULT_SETTINGS, DEFAULT_SWIM_CHECKLIST } from './js/defaults.js';
 
-const DEFAULT_PARTY_DATE = '2026-08-23T12:00:00+03:00';
-const DEFAULT_MEMORIES_DATE = '2026-08-25T00:00:00+03:00';
-const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '👕 Змінний одяг'];
-const DEFAULT_SWIM_CHECKLIST = ['🩱 Купальник', '🧴 SPF', '🏖 Рушник', '🩴 Тапочки'];
+const DEFAULT_PARTY_DATE = DEFAULT_SETTINGS.birthdayDate;
+const DEFAULT_MEMORIES_DATE = DEFAULT_SETTINGS.memoriesModeDate;
 const INVITES = { anna: 'Анно', oksana: 'Оксано', nastya: 'Настю', alina: 'Аліно', kris: 'Кріс', bulka: 'Булко', anya: 'Аню', eva: 'Єво', maryna: 'Марино' };
-// venue: 'out' — святкування у закладі, 'home' — доставка додому, 'both' — і те, і те.
-const DEFAULT_LOCATIONS = [
-  { id: 'drova', name: 'Дрова', category: 'Гриль · піца', venue: 'out', menuUrl: 'https://piceriya-drova-netishyn.choiceqr.com/online-menu', mapsUrl: 'https://maps.app.goo.gl/VKrPLR8kP5mp2xsW6' },
-  { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'out', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
-  { id: 'nonstop', name: 'Non Stop', category: 'Європейська', venue: 'both', menuUrl: 'https://nonstop.choiceqr.com/' },
-  { id: 'lisovyi', name: 'Лісовий', category: 'Українська', venue: 'both', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
-  { id: 'craft-pizza', name: 'Craft', category: 'Піца · суші · бургери', venue: 'home', menuUrl: 'https://menu.ps.me/eYPqnK2Jxq4' },
-  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' }
-];
-
-// Guidance cards shown per city until real train routes are added in the admin
-// panel (collection `transport`). `note` marks them as simple text cards.
-const DEFAULT_ROUTES = [
-  { city: 'Київ', title: '🚆 Потягом', note: 'Шукай прямі потяги Київ → Нетішин на 22–23 серпня в застосунку Укрзалізниці. Якщо прямого немає — бери квиток до Славути чи Здолбунова, звідти ~30–50 км.', origin: 'Київ' },
-  { city: 'Київ', title: '🚗 Автомобілем', note: '≈330 км трасою через Житомир і Новоград-Волинський, орієнтовно 4–4.5 години в дорозі.', origin: 'Київ' },
-  { city: 'Львів', title: '🚆 Потягом через Здолбунів', note: 'Більшість потягів зі Львова в бік Києва зупиняються у Здолбунові — звідти ~50 км до Нетішина (таксі або скажи нам, зустрінемо).', origin: 'Львів' },
-  { city: 'Львів', title: '🚗 Автомобілем', note: '≈270 км через Рівне, орієнтовно 4 години в дорозі.', origin: 'Львів' },
-  { city: 'Вінниця', title: '🚆 Потягом через Шепетівку', note: 'Шепетівка — велика вузлова станція за ~45 км від Нетішина; далі приміський потяг на Славуту/Нетішин або авто.', origin: 'Вінниця' },
-  { city: 'Вінниця', title: '🚗 Автомобілем', note: '≈220 км через Хмельницький, орієнтовно 3.5 години в дорозі.', origin: 'Вінниця' }
-];
 
 const state = {
   partyDate: new Date(DEFAULT_PARTY_DATE),
@@ -279,27 +258,27 @@ function setupRoutes() {
       return;
     }
 
-    let selection = routes.filter(route => route.city === active).sort((a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0) || Number(b.recommended) - Number(a.recommended));
+    let selection = routes.filter(route => route.city === active);
     if (!selection.length) selection = DEFAULT_ROUTES.filter(route => route.city === active);
+    const byDirection = direction => selection
+      .filter(route => (route.direction || 'ТУДИ') === direction)
+      .sort((a, b) => (a.sortOrder ?? a.order ?? 0) - (b.sortOrder ?? b.order ?? 0) || Number(b.recommended) - Number(a.recommended));
 
-    const simpleCard = route => `<article class="route-card route-simple"><div class="route-card-main"><span class="route-label">Рекомендація</span><h3>${escapeHtml(route.title)}</h3><p class="route-note">${escapeHtml(route.note)}</p></div><div class="route-actions"><a class="copy-route" href="https://booking.uz.gov.ua/" target="_blank" rel="noreferrer">Розклад УЗ ↗</a><a class="button primary" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(route.origin)}&destination=${encodeURIComponent('Нетішин')}" target="_blank" rel="noreferrer">Маршрут на мапі ↗</a></div></article>`;
-    const trainCard = route => `<article class="route-card ${route.recommended ? 'recommended' : ''}"><div class="route-card-main"><span class="route-label">${escapeHtml(route.direction || 'Маршрут')}${route.recommended ? ' · ⭐ Найкращий варіант' : ''}</span><h3>🚆 №${escapeHtml(route.trainNumber)}</h3><p class="route-points"><b>${escapeHtml(route.from)}</b><span>→</span><b>${escapeHtml(route.to)}</b></p><div class="route-meta"><span><small>Відправлення</small>${escapeHtml(route.departure)}</span><span><small>Прибуття</small>${escapeHtml(route.arrival)}</span><span><small>У дорозі</small>${escapeHtml(route.duration)}</span><span><small>Пересадки</small>${escapeHtml(route.transfers || 'Прямий')}</span>${route.price ? `<span><small>Від</small>${escapeHtml(route.price)}</span>` : ''}</div></div><div class="route-actions"><button class="copy-route" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Скопіювати маршрут</button><button class="button primary buy-ticket" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Купити квиток ↗</button></div></article>`;
+    const trainCard = route => `<article class="route-card ${route.recommended ? 'recommended' : ''}"><div class="route-card-main"><span class="route-label">${escapeHtml(route.direction || 'Маршрут')}${route.recommended ? ' · ⭐ Найкращий варіант' : ''}</span><h3>🚆 №${escapeHtml(route.trainNumber)}</h3><p class="route-points"><b>${escapeHtml(route.from)}</b><span>→</span><b>${escapeHtml(route.to)}</b></p><div class="route-meta"><span><small>Відправлення</small>${escapeHtml(route.departure)}</span><span><small>Прибуття</small>${escapeHtml(route.arrival)}</span><span><small>У дорозі</small>${escapeHtml(route.duration)}</span><span><small>Пересадки</small>${escapeHtml(route.transfers || 'Прямий')}</span>${route.price ? `<span><small>Від</small>${escapeHtml(route.price)}</span>` : ''}</div></div><div class="route-actions"><button class="button primary buy-ticket" data-route="${encodeURIComponent(JSON.stringify(route))}" type="button">Купити квиток ↗</button><small class="route-hint">Звідки: ${escapeHtml(route.from)} · Куди: ${escapeHtml(route.to)} · Дата: ${escapeHtml(route.date)}</small></div></article>`;
+
+    const group = (label, items) => items.length ? `<h3 class="route-choice-label route-group-label">${label}</h3>${items.map(trainCard).join('')}` : '';
 
     // Reset animation class first so re-selecting the same city / re-rendering still replays it
     list.classList.remove('route-list-in');
-    list.innerHTML = selection.map(route => route.note ? simpleCard(route) : trainCard(route)).join('');
+    const there = byDirection('ТУДИ');
+    const back = byDirection('НАЗАД');
+    list.innerHTML = there.length || back.length
+      ? group('Туди · 22 серпня', there) + group('Назад · 23 серпня', back)
+      : '<div class="route-empty">Перевірених маршрутів поки немає. Вони з’являться тут одразу після додавання.</div>';
 
     // Force a reflow so the animation restarts every time the list is repainted (city switch, live Firestore update, etc.)
     void list.offsetWidth;
     list.classList.add('route-list-in');
-
-    $$('.copy-route').forEach(button => {
-      if (!button.dataset.route) return; // simple guidance cards use plain links here
-      button.addEventListener('click', async () => {
-        const route = JSON.parse(decodeURIComponent(button.dataset.route));
-        copyText(`${route.from} → ${route.to}\nДата: ${route.date}\nПотяг №${route.trainNumber}`, 'Маршрут скопійовано');
-      });
-    });
 
     $$('.buy-ticket').forEach(button => button.addEventListener('click', () => openTicketDialog(JSON.parse(decodeURIComponent(button.dataset.route)))));
   };
