@@ -36,10 +36,11 @@ service cloud.firestore {
 
     match /votes/{inviteId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasOnly(['invitationId', 'type', 'restaurant', 'timestamp'])
+      allow create: if request.resource.data.keys().hasOnly(['invitationId', 'type', 'restaurant', 'venue', 'timestamp'])
         && request.resource.data.invitationId == inviteId
         && request.resource.data.type == 'restaurant'
-        && request.resource.data.restaurant is string;
+        && request.resource.data.restaurant is string
+        && (!('venue' in request.resource.data) || request.resource.data.venue in ['home', 'out']);
       allow update, delete: if false;
     }
 

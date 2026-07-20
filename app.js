@@ -5,14 +5,19 @@ import { LiveGallery } from './js/gallery.js';
 
 const DEFAULT_PARTY_DATE = '2026-08-23T12:00:00+03:00';
 const DEFAULT_MEMORIES_DATE = '2026-08-25T00:00:00+03:00';
-const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '🩱 Купальник', '🩴 Тапочки', '🏖 Рушник', '🧴 SPF', '👕 Змінний одяг'];
+const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '👕 Змінний одяг'];
+const DEFAULT_SWIM_CHECKLIST = ['🩱 Купальник', '🧴 SPF', '🏖 Рушник', '🩴 Тапочки'];
 const INVITES = { anna: 'Анно', oksana: 'Оксано', nastya: 'Настю', alina: 'Аліно', kris: 'Кріс', bulka: 'Булко', anya: 'Аню', eva: 'Єво', maryna: 'Марино' };
+// venue: 'out' — святкування у закладі, 'home' — доставка додому, 'both' — і те, і те.
 const DEFAULT_LOCATIONS = [
-  { id: 'drova', name: 'Дрова', category: 'Гриль · піца', menuUrl: 'https://piceriya-drova-netishyn.choiceqr.com/online-menu', mapsUrl: 'https://maps.app.goo.gl/VKrPLR8kP5mp2xsW6' },
-  { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
-  { id: 'nonstop', name: 'Non Stop', category: 'Європейська', menuUrl: 'https://nonstop.choiceqr.com/' },
-  { id: 'lisovyi', name: 'Лісовий', category: 'Українська', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
-  { id: 'khutorok', name: 'Хуторок', category: 'Українська', menuUrl: 'https://www.instagram.com/p/CfwKMILogTG/?img_index=3' }
+  { id: 'drova', name: 'Дрова', category: 'Гриль · піца', venue: 'out', menuUrl: 'https://piceriya-drova-netishyn.choiceqr.com/online-menu', mapsUrl: 'https://maps.app.goo.gl/VKrPLR8kP5mp2xsW6' },
+  { id: 'la-famiglia', name: 'La Familia', category: 'Італійська', venue: 'both', menuUrl: 'https://expz.menu/091d3b4d-23bb-4965-93d8-4e2602f732b3' },
+  { id: 'nonstop', name: 'Non Stop', category: 'Європейська', venue: 'both', menuUrl: 'https://nonstop.choiceqr.com/' },
+  { id: 'lisovyi', name: 'Лісовий', category: 'Українська', venue: 'both', menuUrl: 'https://rest-lisovyi-netishyn.choiceqr.com/section:menyu' },
+  { id: 'khutorok', name: 'Хуторок', category: 'Українська', venue: 'out', menuUrl: 'https://www.instagram.com/p/CfwKMILogTG/?img_index=3' },
+  { id: 'craft-pizza', name: 'Craft', category: 'Піца · суші · бургери', venue: 'home', menuUrl: 'https://menu.ps.me/eYPqnK2Jxq4' },
+  { id: 'hamster-kebab', name: 'HAMSTER Кебаб', category: 'Кебаб · шаурма', venue: 'home', menuUrl: 'https://hamster-kebab1.ps.me/' },
+  { id: 'belissimo', name: 'Беліссімо', category: 'Піца', venue: 'home', menuUrl: 'https://belissimopizza-netishyn.vidido.info/' }
 ];
 
 const state = {
@@ -107,24 +112,31 @@ async function loadWeather() {
   }
 }
 
-function renderChecklist(items) {
-  $('#checklistItems').innerHTML = items.map((item, index) => {
+function renderChecklist(items, root) {
+  $(root).innerHTML = items.map((item, index) => {
     const emoji = item.split(' ')[0];
     const label = item.slice(item.indexOf(' ') + 1);
     return `<button class="check-card" data-id="${index}" aria-label="Позначити: ${escapeHtml(label)}" aria-pressed="false" type="button"><span aria-hidden="true">${emoji}</span><b>${escapeHtml(label)}</b></button>`;
   }).join('');
-  $$('.check-card').forEach(card => card.addEventListener('click', () => {
+  $$('.check-card', $(root)).forEach(card => card.addEventListener('click', () => {
     card.classList.toggle('flipped');
     card.setAttribute('aria-pressed', String(card.classList.contains('flipped')));
   }));
 }
 
 function setupChecklist() {
-  renderChecklist(DEFAULT_CHECKLIST);
+  const render = (items, swim) => {
+    renderChecklist(items, '#checklistItems');
+    renderChecklist(swim, '#checklistSwim');
+    $('#swimBlock').hidden = !swim.length;
+  };
+  render(DEFAULT_CHECKLIST, DEFAULT_SWIM_CHECKLIST);
   onSnapshot(doc(db, 'checklist', 'items'), snapshot => {
-    if (snapshot.exists() && Array.isArray(snapshot.data().items) && snapshot.data().items.length) {
-      renderChecklist(snapshot.data().items);
-    }
+    if (!snapshot.exists()) return;
+    const data = snapshot.data();
+    const items = Array.isArray(data.items) && data.items.length ? data.items : DEFAULT_CHECKLIST;
+    const swim = Array.isArray(data.swimming) ? data.swimming : DEFAULT_SWIM_CHECKLIST;
+    render(items, swim);
   }, () => {});
 }
 
@@ -167,18 +179,34 @@ function setupWishlist() {
 function setupLocations() {
   let locations = DEFAULT_LOCATIONS;
   let votes = {};
+  let venueChoice = ['home', 'out'].includes(localStorage.getItem('partyVenue')) ? localStorage.getItem('partyVenue') : '';
+
+  const paintTabs = () => {
+    $$('#venueTabs button').forEach(tab => {
+      const selected = tab.dataset.venue === venueChoice;
+      tab.classList.toggle('selected', selected);
+      tab.setAttribute('aria-selected', String(selected));
+    });
+    $('#venueStepLabel').hidden = !venueChoice;
+  };
 
   const render = () => {
-    const visible = locations.filter(place => place.enabled !== false);
+    paintTabs();
+    const grid = $('#locationGrid');
+    if (!venueChoice) {
+      grid.innerHTML = '<div class="route-empty venue-hint">✨ Обери формат вище — і побачиш варіанти для голосування.</div>';
+      return;
+    }
+    const visible = locations.filter(place => place.enabled !== false && (place.venue || 'out') !== (venueChoice === 'home' ? 'out' : 'home'));
     const total = Object.values(votes).reduce((sum, value) => sum + value, 0) || 1;
-    $('#locationGrid').innerHTML = visible.length ? visible.map((place, index) => {
+    grid.innerHTML = visible.length ? visible.map((place, index) => {
       const result = Math.round((votes[place.id] || 0) / total * 100);
       const photo = place.photos?.[0] || place.photoUrl || '';
       const mapUrl = place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} Нетішин`)}`;
       return `<article class="place ${photo ? 'has-photo' : ''}">${photo ? `<img class="place-image" src="${escapeHtml(photo)}" alt="${escapeHtml(place.name)}" loading="lazy">` : ''}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() ? 'disabled' : ''} type="button">${inMemoriesMode() ? 'Фінальний результат' : 'Голосувати'}</button></footer></div></article>`;
-    }).join('') : '<div class="route-empty">Наразі заклади недоступні. Спробуй оновити сторінку трохи пізніше.</div>';
+    }).join('') : '<div class="route-empty">У цьому форматі поки немає варіантів.</div>';
 
-    $$('.vote').forEach(button => button.addEventListener('click', () => castVote(button.dataset.id)));
+    $$('.vote', grid).forEach(button => button.addEventListener('click', () => castVote(button.dataset.id)));
   };
 
   const castVote = async id => {
@@ -186,13 +214,19 @@ function setupLocations() {
       await runTransaction(db, async transaction => {
         const reference = doc(db, 'votes', visitorId());
         if ((await transaction.get(reference)).exists()) throw new Error('already-voted');
-        transaction.set(reference, { invitationId: visitorId(), type: 'restaurant', restaurant: id, timestamp: serverTimestamp() });
+        transaction.set(reference, { invitationId: visitorId(), type: 'restaurant', restaurant: id, venue: venueChoice || 'out', timestamp: serverTimestamp() });
       });
       toast('Дякуємо за голос ✦');
     } catch (error) {
       toast(error.message === 'already-voted' ? 'Твій голос уже врахований.' : 'Помилка підключення. Спробуй ще раз.');
     }
   };
+
+  $$('#venueTabs button').forEach(tab => tab.addEventListener('click', () => {
+    venueChoice = tab.dataset.venue;
+    localStorage.setItem('partyVenue', venueChoice);
+    render();
+  }));
 
   onSnapshot(collection(db, 'restaurants'), snapshot => {
     if (!snapshot.empty) locations = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));

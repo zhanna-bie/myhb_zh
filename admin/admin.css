@@ -7,10 +7,10 @@
   --admin-muted: #a89cb8;
   --admin-purple: #8c50ff;
   --admin-orange: #ff9f43;
-  --admin-gold: #ffbd4a;
+  --admin-gold: #ffb300;
   --admin-danger: #ff5d7a;
   --admin-success: #49d69c;
-  --admin-warning: #ffbd4a;
+  --admin-warning: #ffb300;
   --admin-info: #79b8ff;
   --admin-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
   --admin-radius: 18px;
@@ -61,7 +61,7 @@ em { font-style: normal; color: var(--admin-gold); }
 }
 .admin-brand span {
   width: 28px; height: 28px; border-radius: 50%;
-  border: 1px solid rgba(255, 189, 74, 0.65);
+  border: 1px solid rgba(255, 179, 0, 0.65);
   display: grid; place-items: center; color: var(--admin-gold);
   font-family: Unbounded, sans-serif;
 }
@@ -114,8 +114,14 @@ em { font-style: normal; color: var(--admin-gold); }
 .form-error { color: #ffb4c3; min-height: 1.2em; font-size: 13px; }
 .form-hint {
   margin: 2px 0 0; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.5;
-  color: var(--admin-muted); background: rgba(255, 189, 74, 0.07); border: 1px solid rgba(255, 189, 74, 0.22);
+  color: var(--admin-muted); background: rgba(255, 179, 0, 0.07); border: 1px solid rgba(255, 179, 0, 0.22);
 }
+.upload-photo-label {
+  display: flex !important; align-items: center; justify-content: center; min-height: 46px;
+  border: 1px dashed rgba(255, 179, 0, 0.5); border-radius: 12px; cursor: pointer;
+  color: var(--admin-text); font-size: 13px; font-weight: 700; transition: background 0.2s, border-color 0.2s;
+}
+.upload-photo-label:hover { background: rgba(255, 179, 0, 0.1); border-color: var(--admin-gold); }
 
 .admin-shell {
   position: relative; z-index: 2; min-height: 100svh;
@@ -177,7 +183,7 @@ em { font-style: normal; color: var(--admin-gold); }
 .stat-card strong { display: block; font: 600 34px Unbounded; color: var(--admin-gold); margin-top: 8px; }
 .stat-card small { color: #7fe3b2; font-size: 11px; }
 .stat-card { cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
-.stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 189, 74, 0.45); }
+.stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 179, 0, 0.45); }
 
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
 .panel-head h2, .entity-card h3, .route-admin-card h3, .news-admin-card h3 {
@@ -209,12 +215,12 @@ em { font-style: normal; color: var(--admin-gold); }
 .storage-meta { display: flex; justify-content: space-between; gap: 10px; margin: 12px 0 6px; }
 
 .dropzone-admin {
-  border: 1px dashed rgba(255, 189, 74, 0.45); border-radius: var(--admin-radius);
+  border: 1px dashed rgba(255, 179, 0, 0.45); border-radius: var(--admin-radius);
   padding: 28px; text-align: center; margin-bottom: 14px; cursor: pointer;
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
 }
 .dropzone-admin.over, .dropzone-admin:hover {
-  background: rgba(255, 189, 74, 0.08); border-color: var(--admin-gold); transform: translateY(-2px);
+  background: rgba(255, 179, 0, 0.08); border-color: var(--admin-gold); transform: translateY(-2px);
 }
 .gallery-admin-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .gallery-admin-stats span {
@@ -259,7 +265,7 @@ em { font-style: normal; color: var(--admin-gold); }
   background: rgba(255,255,255,0.08); color: var(--admin-muted);
 }
 .badge-live { color: #8ef0c0; }
-.badge-gold { color: var(--admin-gold); background: rgba(255, 189, 74, 0.12); }
+.badge-gold { color: var(--admin-gold); background: rgba(255, 179, 0, 0.12); }
 .badges { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .wish-card .wish-image {
@@ -311,7 +317,7 @@ em { font-style: normal; color: var(--admin-gold); }
 .admin-toast__text { font-size: 13px; line-height: 1.45; }
 .admin-toast__close { background: none; border: 0; color: var(--admin-muted); cursor: pointer; font-size: 18px; }
 .admin-toast--success { border-color: rgba(73, 214, 156, 0.35); }
-.admin-toast--warning { border-color: rgba(255, 189, 74, 0.35); }
+.admin-toast--warning { border-color: rgba(255, 179, 0, 0.35); }
 .admin-toast--error { border-color: rgba(255, 93, 122, 0.45); }
 .admin-toast--info { border-color: rgba(121, 184, 255, 0.35); }
 

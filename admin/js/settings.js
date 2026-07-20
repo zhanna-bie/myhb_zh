@@ -18,7 +18,8 @@ const DEFAULTS = {
   cloudinaryUploadPreset: 'gallery_upload',
   galleryPageSize: '20'
 };
-const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '🩱 Купальник', '🩴 Тапочки', '🏖 Рушник', '🧴 SPF', '👕 Змінний одяг'];
+const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '👕 Змінний одяг'];
+const DEFAULT_SWIM = ['🩱 Купальник', '🧴 SPF', '🏖 Рушник', '🩴 Тапочки'];
 
 export function renderSettings() {
   mountView(`
@@ -56,10 +57,15 @@ export function renderSettings() {
           </div>
         </section>
         <section class="panel panel-wide">
-          <div class="panel-head"><h2>Checklist</h2><button class="button ghost" id="addChecklistItem" type="button">+ Add item</button></div>
+          <div class="panel-head"><h2>Чек-лист</h2></div>
           <form class="entity-form" id="checklistForm">
+            <p class="muted">Основний список («Не забудь взяти»):</p>
             <div class="checklist-editor" id="checklistEditor"></div>
-            <button class="button primary" type="submit">Save checklist</button>
+            <button class="button ghost" id="addChecklistItem" type="button">+ Пункт в основний список</button>
+            <p class="muted">Блок «Можливо, буде купання» (окремо, нижче основного):</p>
+            <div class="checklist-editor" id="swimEditor"></div>
+            <button class="button ghost" id="addSwimItem" type="button">+ Пункт у купальний</button>
+            <button class="button primary" type="submit">Зберегти чек-лист</button>
           </form>
         </section>
       </div>
@@ -86,31 +92,42 @@ export function renderSettings() {
     cloudForm.querySelector('[name="cloudinaryUploadPreset"]').value = data.cloudinaryUploadPreset;
   }, () => {}));
 
-  track(onSnapshot(doc(db, 'checklist', CHECKLIST_ID), snapshot => {
-    const items = snapshot.exists() ? snapshot.data().items || [] : [];
-    renderChecklistEditor(items.length ? items : DEFAULT_CHECKLIST);
-  }, () => {}));
+  // Two independent editors backed by one Firestore doc: `items` (essentials)
+  // and `swimming` (the "maybe swimming" block shown separately on the site).
+  const editors = {
+    item: { root: '#checklistEditor', fallback: DEFAULT_CHECKLIST },
+    swim: { root: '#swimEditor', fallback: DEFAULT_SWIM }
+  };
 
-  function renderChecklistEditor(items) {
-    $('#checklistEditor').innerHTML = items.map((item, index) => `
+  function readEditor(prefix) {
+    return [...$('#checklistForm').querySelectorAll(`[name^="${prefix}-"]`)].map(input => input.value);
+  }
+
+  function renderEditor(prefix, items) {
+    const root = $(editors[prefix].root);
+    root.innerHTML = items.map((item, index) => `
       <div class="checklist-row">
-        <input name="item-${index}" value="${escapeHtml(item)}" required>
-        <button class="button danger remove-check-item" data-index="${index}" type="button" aria-label="Remove">×</button>
+        <input name="${prefix}-${index}" value="${escapeHtml(item)}" required>
+        <button class="button danger remove-${prefix}" data-index="${index}" type="button" aria-label="Прибрати">×</button>
       </div>
-    `).join('');
-    $$('.remove-check-item', $('#checklistEditor')).forEach(button => {
+    `).join('') || '<p class="muted">Порожньо — блок не показуватиметься на сайті.</p>';
+    $$(`.remove-${prefix}`, root).forEach(button => {
       button.addEventListener('click', () => {
-        const next = [...$('#checklistForm').querySelectorAll('[name^="item-"]')].map(input => input.value);
+        const next = readEditor(prefix);
         next.splice(Number(button.dataset.index), 1);
-        renderChecklistEditor(next);
+        renderEditor(prefix, next);
       });
     });
   }
 
-  $('#addChecklistItem').addEventListener('click', () => {
-    const current = [...$('#checklistForm').querySelectorAll('[name^="item-"]')].map(input => input.value);
-    renderChecklistEditor([...current, '✨ Новий пункт']);
-  });
+  track(onSnapshot(doc(db, 'checklist', CHECKLIST_ID), snapshot => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    renderEditor('item', Array.isArray(data.items) && data.items.length ? data.items : DEFAULT_CHECKLIST);
+    renderEditor('swim', Array.isArray(data.swimming) ? data.swimming : DEFAULT_SWIM);
+  }, () => {}));
+
+  $('#addChecklistItem').addEventListener('click', () => renderEditor('item', [...readEditor('item'), '✨ Новий пункт']));
+  $('#addSwimItem').addEventListener('click', () => renderEditor('swim', [...readEditor('swim'), '✨ Новий пункт']));
 
   $('#settingsForm').addEventListener('submit', async event => {
     event.preventDefault();
@@ -156,13 +173,14 @@ export function renderSettings() {
   $('#checklistForm').addEventListener('submit', async event => {
     event.preventDefault();
     const button = event.submitter;
-    setButtonLoading(button, true, 'Saving...');
-    const items = [...event.currentTarget.querySelectorAll('[name^="item-"]')].map(input => input.value.trim()).filter(Boolean);
+    setButtonLoading(button, true, 'Зберігаю...');
+    const items = readEditor('item').map(value => value.trim()).filter(Boolean);
+    const swimming = readEditor('swim').map(value => value.trim()).filter(Boolean);
     try {
-      await setDoc(doc(db, 'checklist', CHECKLIST_ID), { items, updatedAt: serverTimestamp() });
-      toast.success('Checklist saved');
+      await setDoc(doc(db, 'checklist', CHECKLIST_ID), { items, swimming, updatedAt: serverTimestamp() });
+      toast.success('Чек-лист збережено');
     } catch {
-      toast.error('Could not save checklist');
+      toast.error('Не вдалося зберегти чек-лист');
     } finally {
       setButtonLoading(button, false);
     }

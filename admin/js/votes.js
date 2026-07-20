@@ -17,8 +17,8 @@ export function renderVotes() {
       <div class="vote-summary" id="voteSummary"></div>
       <div class="entity-list" id="votesBreakdown"><div class="skeleton-card"></div></div>
       <section class="panel">
-        <div class="panel-head"><h2>Recent votes</h2></div>
-        <div class="table-wrap"><table class="admin-table" id="votesTable"><thead><tr><th>Guest</th><th>Restaurant</th><th>Time</th></tr></thead><tbody></tbody></table></div>
+        <div class="panel-head"><h2>Останні голоси</h2></div>
+        <div class="table-wrap"><table class="admin-table" id="votesTable"><thead><tr><th>Гість</th><th>Заклад</th><th>Формат</th><th>Час</th></tr></thead><tbody></tbody></table></div>
       </section>
     </section>
   `);
@@ -65,9 +65,10 @@ export function renderVotes() {
       <tr>
         <td>${escapeHtml(vote.invitationId || vote.id)}</td>
         <td>${escapeHtml(restaurantNames[vote.restaurant || vote.locationId] || vote.restaurant || '—')}</td>
+        <td>${vote.venue === 'home' ? '🏠 Вдома' : vote.venue === 'out' ? '🍽 У закладі' : '—'}</td>
         <td>${vote.timestamp?.toDate?.().toLocaleString('uk-UA') || '—'}</td>
       </tr>
-    `).join('') || '<tr><td colspan="3">No votes yet.</td></tr>';
+    `).join('') || '<tr><td colspan="4">Голосів поки немає.</td></tr>';
   }
 
   $('#exportVotesBtn').addEventListener('click', () => {

@@ -4,6 +4,8 @@ import { $, $$, compressImage, escapeHtml, imageDimensions, relativeTime } from 
 
 const PAGE_SIZE = 20;
 const NEW_BADGE_MS = 8000;
+// Retro mission-style captions for the photo cards (the old grid design guests liked).
+const PHOTO_LABELS = ['opening night', 'mission crew', 'night signal', 'golden hour', 'warm echo', 'soft landing', 'orbit friends', 'star dust', 'first light', 'slow dance'];
 const CLOUDINARY_CLOUD_NAME = 'mh1qp8ls';
 const CLOUDINARY_UPLOAD_PRESET = 'gallery_upload';
 
@@ -132,10 +134,16 @@ export class LiveGallery {
     this.renderActivity();
   }
 
+  photoLabel(id) {
+    let hash = 0;
+    for (const char of String(id)) hash = (hash * 31 + char.charCodeAt(0)) % 997;
+    return PHOTO_LABELS[hash % PHOTO_LABELS.length];
+  }
+
   card(item, index) {
     const isNew = item.isNew ? '<span class="new-badge">✨ New</span>' : '';
     const remove = item.uploadedBy === this.ownerId ? `<button class="delete-photo" data-id="${item.id}" aria-label="Видалити своє фото" type="button">×</button>` : '';
-    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span><button class="like-photo" data-id="${item.id}" type="button" aria-label="Вподобати фото">♥ ${item.likes}</button></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
+    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo" data-id="${item.id}" type="button" aria-label="Вподобати фото">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
   }
 
   renderStats() {
