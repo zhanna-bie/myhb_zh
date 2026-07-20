@@ -542,6 +542,10 @@ body {
 .photo-actions { background: transparent; padding: 8px; }
 .photo-open img { border-radius: 13px 13px 0 0; }
 
+/* Blanket safety net: any element whose class sets display would otherwise
+   override the [hidden] attribute and stay visible (the "dead layer" bug class). */
+[hidden] { display: none !important; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 }

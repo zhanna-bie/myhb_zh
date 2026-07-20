@@ -397,6 +397,11 @@ em { font-style: normal; color: var(--admin-gold); }
   outline-offset: 2px;
 }
 
+/* Blanket safety net: several containers (#app-view, #login-view, .modal-root)
+   set their own display, which silently overrides the [hidden] attribute —
+   that's how the empty CMS shell was visible underneath the login form. */
+[hidden] { display: none !important; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
