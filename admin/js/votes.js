@@ -1,6 +1,7 @@
-import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, deleteDoc, doc, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db } from '../../js/firebase-admin.js';
-import { $, $$, escapeHtml, exportCsv, mountView } from './helpers.js';
+import { $, $$, escapeHtml, exportCsv, firebaseErrorMessage, mountView } from './helpers.js';
+import { modal } from './modal.js';
 import { toast } from './toast.js';
 
 const unsubscribers = [];
@@ -14,7 +15,8 @@ export function renderVotes() {
     <section class="view view-votes">
       <header class="view-header">
         <div><p class="eyebrow">ГОЛОСУВАННЯ</p><h1>Голоси</h1><p class="muted">До 3 голосів на гостя сумарно на обидві категорії. Живий підрахунок з Firestore.</p></div>
-        <button class="button ghost" id="exportVotesBtn" type="button">Експорт CSV</button>
+        <div><button class="button ghost" id="exportVotesBtn" type="button">Експорт CSV</button>
+        <button class="button danger" id="resetVotesBtn" type="button">Скинути голосування</button></div>
       </header>
       <div class="vote-summary" id="voteSummary"></div>
       <section class="panel">
@@ -93,5 +95,31 @@ export function renderVotes() {
       timestamp: vote.timestamp?.toDate?.().toISOString() || ''
     })), 'votes.csv');
     toast.success('CSV експортовано');
+  });
+
+  $('#resetVotesBtn').addEventListener('click', async () => {
+    if (!votes.length) {
+      toast.warning('Голосів і так немає — нічого скидати');
+      return;
+    }
+    const confirmed = await modal.confirm({
+      title: 'Скинути голосування',
+      body: `Видалить усі ${votes.length} голос(ів) назавжди — назад не повернути. Роби це лише перед реальним запуском, щоб прибрати тестові дані. Продовжити?`,
+      danger: true,
+      confirmLabel: 'Скинути назавжди'
+    });
+    if (!confirmed) return;
+    try {
+      // Firestore batches cap at 500 writes — chunk in case testing produced more than that.
+      const ids = votes.map(vote => vote.id);
+      for (let i = 0; i < ids.length; i += 450) {
+        const batch = writeBatch(db);
+        ids.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'votes', id)));
+        await batch.commit();
+      }
+      toast.success(`Видалено ${ids.length} голос(ів)`);
+    } catch (error) {
+      toast.error(firebaseErrorMessage(error));
+    }
   });
 }

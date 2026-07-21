@@ -92,7 +92,10 @@ service cloud.firestore {
           request.resource.data.guestId + '_slot2',
           request.resource.data.guestId + '_slot3'
         ];
-      allow delete: if request.auth != null && isGuestOwner(resource.data.guestId);
+      // signedAdmin() so the admin can bulk-clear test votes before launch
+      // (Admin → Голоси → "Скинути голосування") — previously only a vote's
+      // own guest could remove it, so not even the admin could reset this.
+      allow delete: if signedAdmin() || (request.auth != null && isGuestOwner(resource.data.guestId));
     }
 
     // Public "Хто ти?" identity list — fully self-service. Anyone signed in
