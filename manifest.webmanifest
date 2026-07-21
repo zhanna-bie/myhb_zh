@@ -1,1 +1,1 @@
-{"name":"Birthday Party","short_name":"Birthday Party","start_url":"./","display":"standalone","background_color":"#110c1b","theme_color":"#110c1b","description":"Запрошення на святкування та спільний альбом спогадів."}
+{"name":"Birthday Party","short_name":"Birthday Party","start_url":"./","display":"standalone","background_color":"#110c1b","theme_color":"#110c1b","description":"Запрошення на святкування та спільний альбом спогадів.","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png"}]}
