@@ -147,11 +147,8 @@ export class LiveGallery {
     const root = $('#masonry');
     root.innerHTML = items.length ? items.map((item, index) => this.card(item, index)).join('') : '<div class="gallery-empty">Поки що фотографій немає ❤️<br>Першим завантаж своє фото.</div>';
     $$('.photo-open', root).forEach(button => button.addEventListener('click', () => this.openViewer(Number(button.dataset.index))));
-    $$('.open-photo', root).forEach(button => button.addEventListener('click', () => this.openViewer(Number(button.dataset.index))));
     $$('.like-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.like(button.dataset.id); }));
     $$('.delete-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.remove(button.dataset.id); }));
-    $$('.download-photo', root).forEach(link => link.addEventListener('click', () => this.trackDownload(link.dataset.id)));
-    $$('.share-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.share(items.find(item => item.id === button.dataset.id)); }));
     this.renderStats();
     this.renderActivity();
   }
@@ -169,7 +166,10 @@ export class LiveGallery {
     const remove = this.isMine(item) ? `<button class="delete-photo" data-id="${item.id}" aria-label="Видалити своє фото" type="button">×</button>` : '';
     const liked = item.likedBy.includes(this.ownerId);
     const justLiked = item.id === this.justLikedId ? 'like-pop' : '';
-    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo ${liked ? 'liked' : ''} ${justLiked}" data-id="${item.id}" type="button" aria-label="Вподобати фото" aria-pressed="${liked}">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><button class="share-photo" data-id="${item.id}" type="button">↗ Поділитися</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
+    // Download/share live in the lightbox (openViewer) now, not here — three
+    // buttons crammed into a masonry-width card meant "Поділитися" routinely
+    // overflowed/clipped. The grid card keeps only like; open it for the rest.
+    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo ${liked ? 'liked' : ''} ${justLiked}" data-id="${item.id}" type="button" aria-label="Вподобати фото" aria-pressed="${liked}">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div></article>`;
   }
 
   renderStats() {

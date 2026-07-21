@@ -272,7 +272,10 @@ to{opacity:1;transform:none}
 .lightbox{width:100vw;height:100svh;max-width:none;border:0;border-radius:0;padding:12px;grid-template-columns:1fr}
 .lightbox figure{max-height:75svh}
 .viewer-arrow{display:none}
-.viewer-actions{position:sticky;bottom:0}
+.viewer-actions{position:sticky;bottom:0;gap:8px}
+.viewer-actions .button{padding:11px 8px;min-height:44px;font-size:13px;gap:6px;white-space:nowrap}
+#viewerLike{flex:0 0 auto}
+#sharePhoto,#downloadPhoto{flex:1 1 0;min-width:0}
 .masonry{columns:2}
 .memories-mode .hero{min-height:74svh}
 }
@@ -404,12 +407,9 @@ body { font-size: 18px; line-height: 1.55; }
 .photo-meta > span { position: static; display: grid; gap: 2px; padding: 0; background: transparent; font: inherit; }
 .photo-meta small { color: var(--muted); font-size: 12px; }
 .like-photo { min-width: 48px; min-height: 44px; border-radius: 10px; font-size: 15px; }
-.photo-actions { display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 6px; padding: 0 8px 8px; background: rgba(14,11,20,.88); }
 /* CSS elsewhere sets display on these links, which overrides the [hidden] attribute —
    without this rule the Wishlist/Checklist links stay visible in Memories Mode. */
 .nav nav a[hidden], .mobile-nav a[hidden] { display: none !important; }
-.photo-actions button, .photo-actions a { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); color: var(--paper); background: rgba(255,255,255,.04); font: 700 13px Manrope; text-decoration: none; cursor: pointer; }
-.photo-actions a:hover, .photo-actions button:hover { border-color: var(--gold); background: rgba(255,179,0,.1); }
 .photo-open { cursor: zoom-in; }
 .ticket-dialog { width: min(92vw, 520px); padding: 32px; color: var(--paper); background: #171122; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.55); }
 .ticket-dialog::backdrop { background: rgba(4,3,8,.76); backdrop-filter: blur(5px); }
@@ -471,8 +471,6 @@ body { font-size: 18px; line-height: 1.55; }
   .gallery-filter { width: 100%; font-size: 15px; }
   .masonry { columns: 2; column-gap: 10px; }
   .photo { margin-bottom: 10px; }
-  .photo-actions { grid-template-columns: 1fr; }
-  .photo-actions button, .photo-actions a { min-height: 44px; font-size: 14px; }
   .ticket-dialog { width: calc(100vw - 24px); max-height: calc(100svh - 24px); overflow: auto; padding: 24px; }
   .ticket-dialog dl div { display: grid; gap: 4px; }
   .ticket-dialog dd { text-align: left; }
@@ -510,7 +508,6 @@ body {
 }
 .photo { background: #241a30; border-color: rgba(255, 214, 140, .1); }
 .photo-meta { background: linear-gradient(180deg, rgba(36, 25, 46, .94), rgba(20, 14, 27, .96)); border-top: 1px solid rgba(255, 179, 0, .12); }
-.photo-actions { background: rgba(20, 14, 27, .96); }
 .toast { border-left: 4px solid var(--gold); }
 .update-banner { box-shadow: 0 0 30px rgba(255, 179, 0, .08); }
 .ticket-dialog, .lightbox { box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 60px rgba(255, 179, 0, .05); }
@@ -555,12 +552,14 @@ body {
 @keyframes heart-pop { 0% { transform: scale(1); } 35% { transform: scale(1.32); } 62% { transform: scale(.94); } 100% { transform: scale(1); } }
 .vote-pop .vote-result strong { display: inline-block; animation: heart-pop .45s ease; }
 
-/* Gallery grid: gradient cards with mission-style captions under each shot. */
-.photo { background: linear-gradient(155deg, #2c1e3e, #180f22 70%); border: 1px solid rgba(255, 179, 0, .16); }
+/* Gallery grid: gradient cards with mission-style captions under each shot.
+   Matches the voting cards' structure — gold uppercase eyebrow label, a
+   footer-style border-top separating the meta row, hover lift. */
+.photo { background: linear-gradient(155deg, #2c1e3e, #180f22 70%); border: 1px solid rgba(255, 179, 0, .16); transition: transform .25s, border-color .25s, box-shadow .25s; }
+.photo:hover { transform: translateY(-4px); border-color: rgba(255, 179, 0, .45); box-shadow: 0 14px 32px rgba(0,0,0,.3); }
 .photo-caption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 10px 2px; background: transparent; }
 .photo-label { font: 600 10px Unbounded; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
-.photo-meta { background: transparent; border-top: 0; padding-top: 4px; }
-.photo-actions { background: transparent; padding: 8px; }
+.photo-meta { background: transparent; padding-top: 8px; }
 .photo-open img { border-radius: 13px 13px 0 0; }
 
 /* Blanket safety net: any element whose class sets display would otherwise
