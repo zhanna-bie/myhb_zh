@@ -426,6 +426,11 @@ ensureGuestIdentity().then(guest => {
   setupInvitation(guest);
   setupLocations(guest);
   new LiveGallery({ guest, toast }).init();
+  // Registered by matching an existing nickname (new device / cleared
+  // storage), not a brand-new doc — nickname collisions between two
+  // different real guests are rare but possible, so point at the escape
+  // hatch instead of silently assuming the match is correct.
+  if (guest.recognized) toast(`Впізнали тебе як ${guest.nickname}! Не ти? Тисни «Це не я» внизу.`);
 }).catch(() => {
   toast('Не вдалося визначити гостя. Онови сторінку.');
 });

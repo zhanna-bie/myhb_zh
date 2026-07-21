@@ -1,9 +1,9 @@
 // Passwordless guest identity: type your own name + nickname on first visit
 // (self-service — no admin setup needed), then get recognized by that
-// nickname on return visits (localStorage). A handful of guests already
-// exist as real Firestore docs from before this was self-service; typing a
-// name that matches one of them is treated as "this is the same person"
-// (confirm their nickname) rather than creating a duplicate.
+// nickname on return visits (localStorage). Nickname (not name) is the
+// unique identity key: registering again with the same nickname — a new
+// device, cleared storage — rebinds to the existing guests/{id} doc instead
+// of creating a duplicate, even if the name typed this time differs.
 // See admin/js/guests.js for the read-only admin roster and firestore.rules
 // `guests` for the write constraints (server-enforced, not just client-side
 // — see comments there).
@@ -135,7 +135,10 @@ export async function ensureGuestIdentity() {
     throw new Error('auth-unavailable');
   }
   const guest = await openGate();
-  writeStoredGuest(guest);
+  // `recognized` is only meaningful for this one call (app.js uses it to
+  // toast "не ти?" once) — not part of the guest's stored identity.
+  const { recognized, ...toStore } = guest;
+  writeStoredGuest(toStore);
   showNotMeLink();
   return guest;
 }
@@ -181,24 +184,27 @@ function openGate() {
 
         // Small guest list (a birthday party, not a public sign-up) — fetching
         // everyone and matching client-side is simpler and cheap enough,
-        // and avoids needing a normalized-name index for case-insensitive search.
+        // and avoids needing a normalized-nickname index for case-insensitive
+        // search. Nickname is the identity key (not name): the same person
+        // registering from a new device with a different typed name still
+        // lands on their existing doc as long as the nickname matches.
         const snapshot = await getDocs(collection(db, 'guests'));
         const existing = snapshot.docs
           .map(item => ({ id: item.id, ...item.data() }))
-          .find(guest => guest.name?.trim().toLowerCase() === name.toLowerCase());
+          .find(guest => guest.nickname?.trim().toLowerCase() === nickname.toLowerCase());
 
         if (existing) {
-          if (existing.nickname && existing.nickname.toLowerCase() !== nickname.toLowerCase()) {
-            setError(`Гостя з іменем «${existing.name}» вже зареєстровано з іншим ніком. Введи той самий нік або трохи зміни ім'я (наприклад, додай прізвище).`);
-            return;
-          }
+          // No confirmation prompt — a nickname collision is overwhelmingly
+          // "it's really me, new device" rather than two guests independently
+          // picking the same nickname. The rare-coincidence case is handled
+          // by the recognized:true flag below (app.js toasts "не ти?" pointing
+          // at the existing "Це не я" link) rather than an extra dialog.
           await updateDoc(doc(db, 'guests', existing.id), {
-            nickname: existing.nickname || nickname,
             firebaseUid: auth.currentUser.uid,
             updatedAt: serverTimestamp()
           });
           dialog.close();
-          resolve({ guestId: existing.id, name: existing.name, nickname: existing.nickname || nickname });
+          resolve({ guestId: existing.id, name: existing.name, nickname: existing.nickname, recognized: true });
         } else {
           const guestId = `${slugify(name)}-${randomSuffix()}`;
           await setDoc(doc(db, 'guests', guestId), {
@@ -208,7 +214,7 @@ function openGate() {
             createdAt: serverTimestamp()
           });
           dialog.close();
-          resolve({ guestId, name, nickname });
+          resolve({ guestId, name, nickname, recognized: false });
         }
       } catch (err) {
         setError(err?.code === 'permission-denied'
