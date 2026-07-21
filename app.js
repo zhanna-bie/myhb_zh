@@ -376,8 +376,6 @@ function setupMemoriesMode() {
   $('#checklist').hidden = true;
   $('#heroTitle').innerHTML = '❤️ Дякую,<br>що зробили цей день <em>особливим.</em>';
   $('#heroLead').textContent = 'Було дуже круто ❤️ Цей сайт став нашим спільним альбомом спогадів. Додавай улюблені моменти.';
-  $('#detailsButton').href = '#gallery';
-  $('#detailsButton').innerHTML = 'До спогадів <span>↓</span>';
   $('#wishlist').hidden = true;
   $$('.nav a[href="#wishlist"], .mobile-nav a[href="#wishlist"], .mobile-nav a[href="#checklist"]').forEach(link => { link.hidden = true; });
   $('#transport .section-head .muted').textContent = 'Дякуємо всім, хто приїхав!';

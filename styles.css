@@ -55,10 +55,9 @@ a{color:inherit;text-decoration:none}
 .coordinates{left:10%;bottom:10px;color:var(--muted)}
 @keyframes spin{to{transform:rotate(360deg)}
 }
-.quick{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.quick a{padding:28px 17px;border-right:1px solid var(--line);display:grid;gap:5px;transition:.25s}
-.quick a:last-child{border:0}
-.quick a:hover{background:rgba(255,179,0,.09);transform:translateY(-3px)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;border:0}
+.quick a{padding:24px 17px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));display:grid;gap:5px;transition:.25s}
+.quick a:hover{background:rgba(255,179,0,.1);transform:translateY(-4px);border-color:rgba(255,179,0,.5);box-shadow:0 14px 28px rgba(0,0,0,.25)}
 .quick i{font-style:normal;color:var(--gold);font-size:23px}
 .quick span{font-weight:800;font-size:15px}
 .quick b{font-size:10px;font-weight:500;color:var(--muted)}
@@ -144,10 +143,6 @@ a{color:inherit;text-decoration:none}
 .hero h2{font-size:39px}
 .lead{font-size:15px}
 .button{min-height:52px;padding:15px 20px}
-.quick{grid-template-columns:1fr 1fr}
-.quick a{min-height:120px;padding:23px 16px}
-.quick a:nth-child(2){border-right:0}
-.quick a:nth-child(-n+2){border-bottom:1px solid var(--line)}
 .countdown{padding:75px 0;display:block}
 .clock{margin-top:27px;gap:7px}
 .clock div{min-width:0;flex:1}
