@@ -27,6 +27,7 @@ export class LiveGallery {
     this.scale = 1;
     this.touchStart = null;
     this.newBadgeTimers = new Set();
+    this.justLikedId = null;
   }
 
   init() {
@@ -156,7 +157,8 @@ export class LiveGallery {
     const isNew = item.isNew ? '<span class="new-badge">✨ New</span>' : '';
     const remove = this.isMine(item) ? `<button class="delete-photo" data-id="${item.id}" aria-label="Видалити своє фото" type="button">×</button>` : '';
     const liked = item.likedBy.includes(this.ownerId);
-    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo ${liked ? 'liked' : ''}" data-id="${item.id}" type="button" aria-label="Вподобати фото" aria-pressed="${liked}">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><button class="share-photo" data-id="${item.id}" type="button">↗ Поділитися</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
+    const justLiked = item.id === this.justLikedId ? 'like-pop' : '';
+    return `<article class="photo ${item.isNew ? 'photo-new' : ''}"><button class="photo-open" data-index="${index}" type="button" aria-label="Відкрити фото: ${escapeHtml(item.name)}"><img src="${escapeHtml(item.thumbnailUrl)}" loading="lazy" decoding="async" alt="${escapeHtml(item.name)}"></button>${isNew}${remove}<div class="photo-caption"><span class="photo-label">✦ ${this.photoLabel(item.id)}</span><button class="like-photo ${liked ? 'liked' : ''} ${justLiked}" data-id="${item.id}" type="button" aria-label="Вподобати фото" aria-pressed="${liked}">♥ ${item.likes}</button></div><div class="photo-meta"><span><b>${escapeHtml(item.uploadedByName)}</b><small>${relativeTime(item.uploadedAt)}</small></span></div><div class="photo-actions"><button class="open-photo" data-index="${index}" type="button">🔍 Відкрити</button><button class="share-photo" data-id="${item.id}" type="button">↗ Поділитися</button><a class="download-photo" data-id="${item.id}" href="${escapeHtml(item.photoUrl)}" download="${escapeHtml(item.name)}" target="_blank" rel="noreferrer">⬇ Завантажити</a></div></article>`;
   }
 
   renderStats() {
@@ -274,6 +276,14 @@ export class LiveGallery {
     const before = item.likedBy;
     const liked = before.includes(this.ownerId);
     const after = liked ? before.filter(uid => uid !== this.ownerId) : [...before, this.ownerId];
+    if (!liked) {
+      // Brief pulse on the heart that was just liked (not on unlike). Tracked
+      // by id and cleared on a timer, same pattern as newBadgeTimers above —
+      // render() rebuilds the button from scratch each time, so the "just
+      // liked" state has to survive the re-render rather than live on the DOM node.
+      this.justLikedId = id;
+      setTimeout(() => { if (this.justLikedId === id) { this.justLikedId = null; this.render(); } }, 450);
+    }
     // Optimistic update: the live onSnapshot in subscribe() only covers the
     // first PAGE_SIZE items, so a like on anything loaded via loadMore()
     // would otherwise never visibly update until a reload. Applying the

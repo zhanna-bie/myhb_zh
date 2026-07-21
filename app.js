@@ -146,7 +146,7 @@ function setupSettings() {
 
 function setupWishlist() {
   if (inMemoriesMode()) return;
-  $('#wishlist').innerHTML = '<div class="locked-wishlist"><div><p class="eyebrow">Wishlist</p><h2>🔒 Wishlist</h2><p>Очікуйте оновлення.</p></div><span class="lock-orbit" aria-hidden="true">✦</span></div>';
+  $('#wishlist').innerHTML = '<div class="locked-wishlist"><div><p class="eyebrow">Wishlist</p><h2>🔒 Wishlist</h2><p>Ще збираю список — зовсім скоро з\'явиться тут ✦</p></div><span class="lock-orbit" aria-hidden="true">✦</span></div>';
 }
 
 function setupLocations(guest) {
@@ -162,6 +162,7 @@ function setupLocations(guest) {
   };
   let votes = {}; // placeId -> total vote count (both categories combined tally per place)
   let myVotes = new Map(); // slot ('slot1'|'slot2'|'slot3') -> { placeId, venue }
+  let justVotedId = null; // brief pulse on the card just voted for — cleared on a timer, mirrors js/gallery.js's justLikedId
   let venueChoice = ['home', 'out'].includes(localStorage.getItem('partyVenue')) ? localStorage.getItem('partyVenue') : '';
 
   const paintTabs = () => {
@@ -171,6 +172,15 @@ function setupLocations(guest) {
       tab.setAttribute('aria-selected', String(selected));
     });
     $('#venueStepLabel').hidden = !venueChoice;
+  };
+
+  const paintVoteHint = () => {
+    const hint = $('#voteLimitHint');
+    hint.hidden = !venueChoice || inMemoriesMode();
+    if (hint.hidden) return;
+    const left = MAX_VOTES - myVotes.size;
+    hint.textContent = left > 0 ? `Обрано ${myVotes.size} з ${MAX_VOTES} — залишилось голосів: ${left}` : `Максимум обрано (${MAX_VOTES}/${MAX_VOTES}) — знімай голос, щоб обрати інший`;
+    hint.classList.toggle('is-full', left <= 0);
   };
 
   const emojiFor = (category = '') => {
@@ -188,6 +198,7 @@ function setupLocations(guest) {
 
   const render = () => {
     paintTabs();
+    paintVoteHint();
     const grid = $('#locationGrid');
     if (!venueChoice) {
       grid.innerHTML = '<div class="route-empty venue-hint">✨ Обери формат вище — і побачиш варіанти для голосування.</div>';
@@ -209,7 +220,8 @@ function setupLocations(guest) {
       const voted = mine.has(place.id);
       const locked = !voted && votesUsed >= MAX_VOTES;
       const label = inMemoriesMode() ? 'Фінальний результат' : voted ? '✓ Твій голос · зняти' : locked ? 'Ліміт 3 голоси' : 'Голосувати';
-      return `<article class="place ${photo ? 'has-photo' : ''}">${art}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote ${voted ? 'is-voted' : ''}" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() || locked ? 'disabled' : ''} type="button">${label}</button></footer></div></article>`;
+      const votePop = place.id === justVotedId ? 'vote-pop' : '';
+      return `<article class="place ${photo ? 'has-photo' : ''} ${votePop}">${art}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote ${voted ? 'is-voted' : ''}" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() || locked ? 'disabled' : ''} type="button">${label}</button></footer></div></article>`;
     }).join('') : '<div class="route-empty">У цьому форматі поки немає варіантів.</div>';
 
     $$('.vote', grid).forEach(button => button.addEventListener('click', () => toggleVote(button.dataset.id)));
@@ -228,6 +240,8 @@ function setupLocations(guest) {
         return;
       }
       const freeSlot = ['slot1', 'slot2', 'slot3'].find(slot => !myVotes.has(slot));
+      justVotedId = placeId;
+      setTimeout(() => { if (justVotedId === placeId) { justVotedId = null; render(); } }, 450);
       await setDoc(doc(db, 'votes', `${guest.guestId}_${freeSlot}`), {
         guestId: guest.guestId,
         placeId,
@@ -376,6 +390,21 @@ function setupMemoriesMode() {
   });
 }
 
+function setupScrollReveal() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // Targets the static <section> wrappers, not their dynamically re-rendered
+  // inner grids — so a live Firestore update (a new vote, a new photo) can't
+  // re-trigger the fade and make the page flicker for someone already there.
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px' });
+  $$('.section.block').forEach(section => observer.observe(section));
+}
+
 setupSettings();
 setupCountdown();
 loadWeather();
@@ -385,6 +414,7 @@ setupWishlist();
 setupRoutes();
 setupTicketDialog();
 setupMemoriesMode();
+setupScrollReveal();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 
 ensureGuestIdentity().then(guest => {
