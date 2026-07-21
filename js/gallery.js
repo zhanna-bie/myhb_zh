@@ -270,12 +270,30 @@ export class LiveGallery {
 
   async like(id) {
     const item = this.items.find(photo => photo.id === id);
-    const liked = item?.likedBy.includes(this.ownerId);
+    if (!item) return;
+    const before = item.likedBy;
+    const liked = before.includes(this.ownerId);
+    const after = liked ? before.filter(uid => uid !== this.ownerId) : [...before, this.ownerId];
+    // Optimistic update: the live onSnapshot in subscribe() only covers the
+    // first PAGE_SIZE items, so a like on anything loaded via loadMore()
+    // would otherwise never visibly update until a reload. Applying the
+    // toggle locally first makes every like/unlike feel instant regardless
+    // of pagination or network latency; a failed write rolls it back to `before`.
+    this.applyLikeState(item, after);
     try {
       await updateDoc(doc(db, 'gallery', id), { likedBy: liked ? arrayRemove(this.ownerId) : arrayUnion(this.ownerId) });
     } catch {
+      this.applyLikeState(item, before);
       this.toast('Не вдалося оновити лайк.');
     }
+  }
+
+  applyLikeState(item, likedBy) {
+    item.likedBy = likedBy;
+    item.likes = likedBy.length;
+    this.render();
+    const viewerItem = this.viewerItems?.find(photo => photo.id === item.id);
+    if (viewerItem) { viewerItem.likedBy = item.likedBy; viewerItem.likes = item.likes; this.paintViewer(); }
   }
 
   async share(item) {
