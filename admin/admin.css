@@ -304,6 +304,43 @@ em { font-style: normal; color: var(--admin-gold); }
   color: var(--admin-muted); text-align: center; font-size: 13px;
 }
 
+.voting-order-panel { margin-bottom: 18px; }
+.voting-order-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.voting-order-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border: 1px solid var(--admin-line); border-radius: 14px; background: rgba(255,255,255,0.03);
+  transition: border-color 0.15s, opacity 0.15s;
+}
+.voting-order-item.is-disabled { opacity: 0.6; }
+.voting-order-item.dragging { opacity: 0.4; }
+.voting-order-item.drag-before { border-top: 2px solid var(--admin-gold); }
+.voting-order-item.drag-after { border-bottom: 2px solid var(--admin-gold); }
+.drag-handle { cursor: grab; color: var(--admin-muted); font-size: 16px; line-height: 1; touch-action: none; }
+.voting-order-thumb {
+  width: 48px; height: 48px; flex: none; border-radius: 10px; background: rgba(255,255,255,0.06);
+  background-size: cover; background-position: center;
+}
+.voting-order-body { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+.voting-order-body b { font: 600 14px Unbounded; letter-spacing: -0.02em; }
+.voting-order-body .muted { font-size: 12px; }
+.voting-order-body .vote-bar { max-width: 220px; }
+.voting-order-item-actions { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
+.voting-order-item-actions .button { padding: 6px 10px; font-size: 11px; }
+.voting-order-empty {
+  list-style: none; padding: 20px; text-align: center; border: 1px dashed var(--admin-line);
+  border-radius: 14px; font-size: 13px;
+}
+.voting-order-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.picker-list { display: grid; gap: 6px; max-height: 50vh; overflow: auto; }
+.picker-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--admin-line);
+  background: rgba(255,255,255,0.03); color: inherit; font: inherit; cursor: pointer;
+  text-align: left; transition: border-color 0.15s, background 0.15s;
+}
+.picker-row:hover { border-color: rgba(255, 179, 0, 0.45); background: rgba(255, 179, 0, 0.08); }
+
 .toast-root {
   position: fixed; top: 18px; right: 18px; z-index: 100;
   display: grid; gap: 10px; width: min(360px, calc(100vw - 24px));

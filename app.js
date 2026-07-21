@@ -151,6 +151,15 @@ function setupWishlist() {
 
 function setupLocations(guest) {
   let locations = DEFAULT_LOCATIONS;
+  // Display order per category now lives in settings/votingOrder (admin drag-and-drop
+  // lists) as arrays of restaurant ids, not a per-restaurant numeric field — a place
+  // can appear in both, one, or neither list independently. Seed a sensible fallback
+  // from DEFAULT_LOCATIONS' own venue field so something reasonable shows before the
+  // votingOrder doc has ever loaded (or if it's still empty).
+  let order = {
+    venue: DEFAULT_LOCATIONS.filter(place => ['out', 'both'].includes(place.venue)).map(place => place.id),
+    home: DEFAULT_LOCATIONS.filter(place => ['home', 'both'].includes(place.venue)).map(place => place.id)
+  };
   let votes = {}; // placeId -> total vote count (both categories combined tally per place)
   let myVotes = new Map(); // slot ('slot1'|'slot2'|'slot3') -> { placeId, venue }
   let venueChoice = ['home', 'out'].includes(localStorage.getItem('partyVenue')) ? localStorage.getItem('partyVenue') : '';
@@ -184,11 +193,11 @@ function setupLocations(guest) {
       grid.innerHTML = '<div class="route-empty venue-hint">✨ Обери формат вище — і побачиш варіанти для голосування.</div>';
       return;
     }
-    const wantVenue = venueChoice === 'home' ? 'home' : 'out';
-    const orderKey = wantVenue === 'home' ? 'orderHome' : 'orderOut';
-    const visible = locations
-      .filter(place => place.enabled !== false && ['both', wantVenue].includes(place.venue || 'out'))
-      .sort((a, b) => (a[orderKey] ?? a.sortOrder ?? 0) - (b[orderKey] ?? b.sortOrder ?? 0));
+    const orderKey = venueChoice === 'home' ? 'home' : 'venue';
+    const byId = Object.fromEntries(locations.map(place => [place.id, place]));
+    const visible = (order[orderKey] || [])
+      .map(id => byId[id])
+      .filter(place => place && place.enabled !== false);
     const total = Object.values(votes).reduce((sum, value) => sum + value, 0) || 1;
     const mine = myVotedPlaceIds();
     const votesUsed = myVotes.size;
@@ -239,6 +248,12 @@ function setupLocations(guest) {
 
   onSnapshot(collection(db, 'restaurants'), snapshot => {
     if (!snapshot.empty) locations = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+    render();
+  }, () => render());
+
+  onSnapshot(doc(db, 'settings', 'votingOrder'), snapshot => {
+    const data = snapshot.data();
+    if (data?.venue?.length || data?.home?.length) order = { venue: data.venue || [], home: data.home || [] };
     render();
   }, () => render());
 
