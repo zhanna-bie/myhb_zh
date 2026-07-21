@@ -58,7 +58,7 @@ function setupCountdown() {
   const tick = () => {
     if (inMemoriesMode()) return;
     const difference = Math.max(0, state.partyDate - Date.now());
-    const values = [['days', 86400000, 3], ['hours', 3600000, 2], ['mins', 60000, 2], ['secs', 1000, 2]];
+    const values = [['days', 86400000, 1], ['hours', 3600000, 2], ['mins', 60000, 2], ['secs', 1000, 2]];
     values.forEach(([id, unit, digits]) => {
       const mod = id === 'days' ? Infinity : id === 'hours' ? 24 : 60;
       const value = Math.floor(difference / unit) % mod;
