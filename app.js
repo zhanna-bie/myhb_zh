@@ -51,7 +51,7 @@ function inMemoriesMode() {
 }
 
 function setupInvitation(guest) {
-  $('#inviteGreeting').textContent = `Привіт, ${guest.nickname}! 👋 РАДІ, ЩО ТИ ТУТ`;
+  $('#heroTitle').innerHTML = `Привіт, ${escapeHtml(guest.nickname)}! ❤️<br><em>Рада, що ти тут.</em>`;
 }
 
 function setupCountdown() {
