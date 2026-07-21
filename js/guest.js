@@ -7,7 +7,7 @@
 // See admin/js/guests.js for the read-only admin roster and firestore.rules
 // `guests` for the write constraints (server-enforced, not just client-side
 // — see comments there).
-import { collection, doc, getDocs, serverTimestamp, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { auth, db, ensureGuestSession } from './firebase.js';
 import { $ } from './utils.js';
 
@@ -63,13 +63,56 @@ async function ensureAuthReady() {
  * silently blocked every first-time visitor from ever entering the site.
  * Wait for the real ENTER click (or for the splash to already be dismissed)
  * before the gate is allowed to show itself.
+ *
+ * Watches gate state instead of listening for a fresh click: app.js is a
+ * module, so on a cold cache (a genuinely new device — no service worker,
+ * nothing cached) it and its imports can take a real moment to download.
+ * The inline <script> at the bottom of index.html attaches its own ENTER
+ * listener synchronously during parsing, long before that — so an impatient
+ * click on a slow connection was already handled (splash dismissed) before
+ * this function even ran, and a `{once:true}` listener for a *future* click
+ * that was never coming left ensureGuestIdentity() hanging forever with the
+ * registration form never appearing. Observing the gate's actual class/hidden
+ * state instead means it doesn't matter whether the click happened before,
+ * during, or after this runs.
  */
 function waitForEntry() {
   const gate = document.getElementById('gate');
   if (!gate || gate.hidden || gate.classList.contains('out')) return Promise.resolve();
   return new Promise(resolve => {
-    document.getElementById('enterBtn')?.addEventListener('click', () => resolve(), { once: true });
+    const settled = () => gate.hidden || gate.classList.contains('out');
+    const observer = new MutationObserver(() => {
+      if (!settled()) return;
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(gate, { attributes: true, attributeFilter: ['class', 'hidden'] });
+    // Belt-and-suspenders: a plain click listener too, in case some future
+    // change dismisses the gate without touching its class/hidden attributes.
+    document.getElementById('enterBtn')?.addEventListener('click', () => {
+      if (settled()) { observer.disconnect(); resolve(); }
+    }, { once: true });
   });
+}
+
+/**
+ * If the admin deletes a guest from the Guests panel but that guest's
+ * device still has the old guestId in localStorage, they'd otherwise keep
+ * using the site as a "ghost" tied to a Firestore doc that no longer
+ * exists (and whose votes/likes/uploads would start failing rules checks
+ * that look the doc up). Runs in the background — reading `guests` is
+ * public (no auth needed), so this doesn't make a returning guest wait —
+ * and reloads straight into the registration gate if the doc is gone.
+ */
+async function revalidateStoredGuest(stored) {
+  try {
+    const snapshot = await getDoc(doc(db, 'guests', stored.guestId));
+    if (snapshot.exists()) return;
+  } catch {
+    return; // network hiccup — don't punish the guest for a flaky connection
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
 }
 
 /** Resolves once a guest is identified — first from localStorage, otherwise via the gate dialog. */
@@ -80,6 +123,7 @@ export async function ensureGuestIdentity() {
     // UI-blocking, so let it settle in the background — don't make a
     // returning guest wait on it.
     ensureAuthReady();
+    revalidateStoredGuest(stored);
     showNotMeLink();
     return stored;
   }
