@@ -79,9 +79,10 @@ async function loadWeather() {
     const current = data.current;
     $('#weatherCurrent').innerHTML = `<div class="temp">${Math.round(current.temperature_2m)}°</div><div><b>Нетішин зараз</b><p>Відчувається ${Math.round(current.apparent_temperature)}° · 💨 ${Math.round(current.wind_speed_10m)} км/год · 💧 ${current.relative_humidity_2m}%</p></div>`;
     $('#forecast').innerHTML = data.daily.time.map((date, index) => `<article class="weather-day"><b>${new Date(`${date}T12:00`).toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' })}</b><strong>${Math.round(data.daily.temperature_2m_min[index])}° — ${Math.round(data.daily.temperature_2m_max[index])}°</strong><span>💨 ${Math.round(data.daily.wind_speed_10m_max[index])} км/год</span><span>☔ ${data.daily.precipitation_probability_max[index]}%</span></article>`).join('');
-    status.textContent = 'Live data · Open-Meteo';
+    status.hidden = true;
   } catch {
-    status.textContent = 'Weather currently unavailable.';
+    status.hidden = false;
+    status.textContent = 'Не вдалося завантажити погоду.';
   }
 }
 
