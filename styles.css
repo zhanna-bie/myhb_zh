@@ -424,6 +424,11 @@ body { font-size: 18px; line-height: 1.55; }
   .hero h2 { font-size: clamp(36px, 10vw, 46px); }
   .lead, .muted { font-size: 18px; }
   .hero-art { height: 190px; transform: scale(.73); }
+  /* .radar's left:3% and .planet's rings both anchor near the left edge of
+     .hero-art — on narrow screens there isn't room for both, so the radar's
+     spinning circles end up cutting across the planet's rings. The planet
+     is the primary visual; drop the radar rather than fight over the space. */
+  .radar { display: none; }
   .quick { grid-template-columns: 1fr; border: 0; gap: 10px; }
   .quick a, .quick a:nth-child(2), .quick a:nth-child(-n+2) { min-height: 76px; grid-template-columns: 38px 1fr; align-items: center; border: 1px solid var(--line); border-radius: 15px; padding: 16px 18px; }
   .quick i { grid-row: span 2; }
@@ -596,8 +601,6 @@ body {
 .guest-gate .muted { font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
 .guest-gate .form-hint { color: var(--muted); font-size: 13px; margin: -6px 0 14px; }
 .guest-gate .form-error { color: #ff9db0; font-size: 13px; min-height: 1.3em; margin: 10px 0 0; }
-.guest-gate-actions { display: flex; gap: 10px; }
-.guest-gate-actions .button { flex: 1; margin: 0; }
 .guest-gate button[type="submit"] { width: 100%; min-height: 50px; }
 .not-me-link { position: fixed; left: 14px; bottom: 14px; z-index: 15; border: 1px solid var(--line); background: rgba(14,11,20,.75); backdrop-filter: blur(6px); color: var(--muted); font: 700 10px Manrope; letter-spacing: .06em; text-transform: uppercase; padding: 10px 14px; border-radius: 999px; cursor: pointer; }
 .not-me-link:hover { color: var(--gold); border-color: rgba(255,179,0,.4); }
