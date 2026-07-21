@@ -213,8 +213,12 @@ function setupLocations(guest) {
     const total = Object.values(votes).reduce((sum, value) => sum + value, 0) || 1;
     const mine = myVotedPlaceIds();
     const votesUsed = myVotes.size;
+    // Only badge a leader once someone's actually voted — with 0 votes
+    // everywhere, "leading" is meaningless noise, not a fun signal.
+    const maxVotesVisible = Math.max(0, ...visible.map(place => votes[place.id] || 0));
     grid.innerHTML = visible.length ? visible.map((place, index) => {
-      const result = Math.round((votes[place.id] || 0) / total * 100);
+      const placeVotes = votes[place.id] || 0;
+      const result = Math.round(placeVotes / total * 100);
       const photo = place.photos?.[0] || place.photoUrl || '';
       const mapUrl = place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.name} Нетішин`)}`;
       const art = photo ? `<img class="place-image" src="${escapeHtml(photo)}" alt="${escapeHtml(place.name)}" loading="lazy">` : `<div class="place-art art-${index % 4}" aria-hidden="true" data-emoji="${emojiFor(place.category)}"></div>`;
@@ -222,7 +226,8 @@ function setupLocations(guest) {
       const locked = !voted && votesUsed >= MAX_VOTES;
       const label = inMemoriesMode() ? 'Фінальний результат' : voted ? '✓ Твій голос · зняти' : locked ? 'Ліміт 3 голоси' : 'Голосувати';
       const votePop = place.id === justVotedId ? 'vote-pop' : '';
-      return `<article class="place ${photo ? 'has-photo' : ''} ${votePop}">${art}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote ${voted ? 'is-voted' : ''}" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() || locked ? 'disabled' : ''} type="button">${label}</button></footer></div></article>`;
+      const leadBadge = maxVotesVisible > 0 && placeVotes === maxVotesVisible ? '<span class="lead-badge">🔥 Топ вибір</span>' : '';
+      return `<article class="place ${photo ? 'has-photo' : ''} ${votePop}">${art}${leadBadge}<div class="place-shade"></div><div class="place-content"><span>0${index + 1} <b>${escapeHtml(place.category)}</b></span><h3>${escapeHtml(place.name)}</h3><div class="place-links"><a href="${escapeHtml(place.menuUrl)}" target="_blank" rel="noreferrer">Меню ↗</a><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Мапа ↗</a></div><footer><div class="vote-result" aria-label="${result}% голосів"><strong>♥ ${result}%</strong><div class="vote-progress"><i style="width:${result}%"></i></div></div><button class="vote ${voted ? 'is-voted' : ''}" data-id="${escapeHtml(place.id)}" ${inMemoriesMode() || locked ? 'disabled' : ''} type="button">${label}</button></footer></div></article>`;
     }).join('') : '<div class="route-empty">У цьому форматі поки немає варіантів.</div>';
 
     $$('.vote', grid).forEach(button => button.addEventListener('click', () => toggleVote(button.dataset.id)));
