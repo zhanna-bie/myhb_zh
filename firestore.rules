@@ -90,13 +90,24 @@ service cloud.firestore {
       allow delete: if request.auth != null && isGuestOwner(resource.data.guestId);
     }
 
-    // Public "Хто ти?" identity list. `name` is admin-set; `nickname` is
-    // claimed once by the guest themself (never overwritten while it's
-    // already set, unless it's an unchanged rebind to a new device — see
-    // js/guest.js) or reset by the admin.
+    // Public "Хто ти?" identity list — fully self-service. Anyone signed in
+    // (anonymously) can create their own guest doc with their own name +
+    // nickname; `nickname` on an existing doc is claimed once (never
+    // overwritten while already set, unless it's an unchanged rebind to a
+    // new device — see js/guest.js) or reset by the admin.
     match /guests/{guestId} {
       allow read: if true;
-      allow create: if signedAdmin();
+      allow create: if signedAdmin() || (
+        request.auth != null
+        && request.resource.data.keys().hasOnly(['name', 'nickname', 'firebaseUid', 'createdAt'])
+        && request.resource.data.firebaseUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() > 0
+        && request.resource.data.nickname.size() <= 24
+      );
       allow update: if signedAdmin() || (
         request.auth != null
         && request.resource.data.name == resource.data.name

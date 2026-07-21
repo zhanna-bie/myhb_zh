@@ -38,17 +38,6 @@ export const DEFAULT_ROUTES = [
   { id: 'vinnytsia-back-1', city: 'Вінниця', direction: 'НАЗАД', dateNote: 'приїзд вночі 24.08', from: 'Кривин', to: 'Вінниця', date: '23.08.2026', trainNumber: '78', departure: '22:14', arrival: '02:23', duration: '4 год 09 хв', transfers: 'Прямий, без пересадки', price: 'від 250 ₴', recommended: true }
 ];
 
-// Seeded once into Firestore `guests` by the admin Guests panel — see admin/js/guests.js.
-// `nickname` starts empty; each guest sets their own on first visit (js/guest.js).
-export const DEFAULT_GUESTS = [
-  { id: 'anya', name: 'Аня' },
-  { id: 'bulka', name: 'Булка' },
-  { id: 'kris', name: 'Кріс' },
-  { id: 'marinka', name: 'Марінка' },
-  { id: 'oksana', name: 'Оксана' },
-  { id: 'eva', name: 'Єва' }
-];
-
 export const DEFAULT_CHECKLIST = ['😊 Гарний настрій', '🎫 Квитки', '🧳 Речі для ночівлі', '👕 Змінний одяг'];
 export const DEFAULT_SWIM_CHECKLIST = ['🩱 Купальник', '🧴 SPF', '🏖 Рушник', '🩴 Тапочки'];
 

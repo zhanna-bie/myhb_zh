@@ -1,13 +1,27 @@
-// Passwordless guest identity: pick a name from a preset list, claim a nickname
-// once, then get recognized by that nickname on return visits (localStorage).
-// See admin/js/guests.js for the admin side and firestore.rules `guests` for
-// the write constraints (nickname settable only while empty; server-enforced,
-// not just client-side — see comments there).
-import { collection, doc, getDoc, getDocs, serverTimestamp, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+// Passwordless guest identity: type your own name + nickname on first visit
+// (self-service — no admin setup needed), then get recognized by that
+// nickname on return visits (localStorage). A handful of guests already
+// exist as real Firestore docs from before this was self-service; typing a
+// name that matches one of them is treated as "this is the same person"
+// (confirm their nickname) rather than creating a duplicate.
+// See admin/js/guests.js for the read-only admin roster and firestore.rules
+// `guests` for the write constraints (server-enforced, not just client-side
+// — see comments there).
+import { collection, doc, getDocs, serverTimestamp, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { auth, db, ensureGuestSession } from './firebase.js';
 import { $ } from './utils.js';
 
 const STORAGE_KEY = 'partyGuest';
+
+function slugify(name) {
+  return name.trim().toLowerCase().replace(/[^a-zа-яіїєґ0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'guest';
+}
+
+// Short random suffix so two different people who happen to share a first
+// name never collide on the same document id.
+function randomSuffix() {
+  return Math.random().toString(36).slice(2, 6);
+}
 
 function readStoredGuest() {
   try {
@@ -41,14 +55,35 @@ async function ensureAuthReady() {
   return false;
 }
 
+/**
+ * `#guestGate` is a native <dialog>; showModal() makes the *entire rest of
+ * the page inert* (not just visually covered — unclickable, including the
+ * ENTER splash underneath it). ensureGuestIdentity() used to open it the
+ * instant app.js loaded, before anyone had a chance to click ENTER — which
+ * silently blocked every first-time visitor from ever entering the site.
+ * Wait for the real ENTER click (or for the splash to already be dismissed)
+ * before the gate is allowed to show itself.
+ */
+function waitForEntry() {
+  const gate = document.getElementById('gate');
+  if (!gate || gate.hidden || gate.classList.contains('out')) return Promise.resolve();
+  return new Promise(resolve => {
+    document.getElementById('enterBtn')?.addEventListener('click', () => resolve(), { once: true });
+  });
+}
+
 /** Resolves once a guest is identified — first from localStorage, otherwise via the gate dialog. */
 export async function ensureGuestIdentity() {
   const stored = readStoredGuest();
-  const authReady = await ensureAuthReady();
   if (stored) {
+    // Needed for later writes (votes, likes, uploads) but nothing here is
+    // UI-blocking, so let it settle in the background — don't make a
+    // returning guest wait on it.
+    ensureAuthReady();
     showNotMeLink();
     return stored;
   }
+  const [authReady] = await Promise.all([ensureAuthReady(), waitForEntry()]);
   if (!authReady) {
     const error = $('#guestGateError');
     if (error) error.textContent = 'Не вдалося підключитись. Перевір інтернет і онови сторінку.';
@@ -75,68 +110,22 @@ function showNotMeLink() {
 function openGate() {
   return new Promise(resolve => {
     const dialog = $('#guestGate');
-    const nameForm = $('#guestNameForm');
-    const nameSelect = $('#guestNameSelect');
-    const emptyHint = $('#guestNameEmptyHint');
-    const nickForm = $('#guestNicknameForm');
-    const nickHint = $('#guestNicknameHint');
+    const form = $('#guestIdentityForm');
+    const nameInput = $('#guestNameInput');
     const nickInput = $('#guestNicknameInput');
-    const nickBack = $('#guestNameBack');
+    const submitBtn = $('#guestIdentitySubmit');
     const error = $('#guestGateError');
-
-    let guests = [];
-    let selected = null;
-
     const setError = message => { error.textContent = message || ''; };
 
-    getDocs(collection(db, 'guests')).then(snapshot => {
-      guests = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-      nameSelect.innerHTML = '<option value="" disabled selected>Оберіть ім\'я…</option>'
-        + guests.map(guest => `<option value="${guest.id}">${guest.name}</option>`).join('');
-      emptyHint.hidden = guests.length > 0;
-      nameForm.querySelector('button').disabled = !guests.length;
-    }).catch(() => { emptyHint.hidden = false; emptyHint.textContent = 'Не вдалося завантажити список гостей. Онови сторінку.'; });
-
     dialog.showModal();
+    nameInput.focus();
 
-    nameForm.addEventListener('submit', async event => {
+    form.addEventListener('submit', async event => {
       event.preventDefault();
       setError('');
-      const guestId = nameSelect.value;
-      if (!guestId) return;
-      try {
-        const snapshot = await getDoc(doc(db, 'guests', guestId));
-        if (!snapshot.exists()) { setError('Цього гостя більше немає у списку. Онови сторінку.'); return; }
-        selected = { id: guestId, ...snapshot.data() };
-        nameForm.hidden = true;
-        nickForm.hidden = false;
-        nickInput.value = '';
-        if (selected.nickname) {
-          nickHint.textContent = `${selected.name}, введи нік, яким ти вже прив'язалась раніше (з іншого пристрою).`;
-          nickInput.placeholder = 'Твій нік';
-        } else {
-          nickHint.textContent = `${selected.name}, придумай свій нік — під ним тебе бачитимуть на сайті.`;
-          nickInput.placeholder = 'Придумай нік';
-        }
-        nickInput.focus();
-      } catch {
-        setError('Помилка підключення. Спробуй ще раз.');
-      }
-    });
-
-    nickBack.addEventListener('click', () => {
-      setError('');
-      nickForm.hidden = true;
-      nameForm.hidden = false;
-      selected = null;
-    });
-
-    nickForm.addEventListener('submit', async event => {
-      event.preventDefault();
-      setError('');
+      const name = nameInput.value.trim();
       const nickname = nickInput.value.trim();
-      if (!nickname || !selected) return;
-      const submitBtn = $('#guestNicknameSubmit');
+      if (!name || !nickname) return;
       submitBtn.disabled = true;
       try {
         // Last-resort safety net: if auth somehow still isn't ready here
@@ -145,28 +134,41 @@ function openGate() {
         // try once more before giving up.
         if (!auth.currentUser) await ensureGuestSession().catch(() => {});
         if (!auth.currentUser) { setError('Немає з’єднання з сервером. Перевір інтернет і спробуй ще раз.'); return; }
-        if (selected.nickname) {
-          if (selected.nickname.toLowerCase() !== nickname.toLowerCase()) {
-            setError('Нік не збігається з тим, який ти обрала раніше. Спробуй ще раз.');
+
+        // Small guest list (a birthday party, not a public sign-up) — fetching
+        // everyone and matching client-side is simpler and cheap enough,
+        // and avoids needing a normalized-name index for case-insensitive search.
+        const snapshot = await getDocs(collection(db, 'guests'));
+        const existing = snapshot.docs
+          .map(item => ({ id: item.id, ...item.data() }))
+          .find(guest => guest.name?.trim().toLowerCase() === name.toLowerCase());
+
+        if (existing) {
+          if (existing.nickname && existing.nickname.toLowerCase() !== nickname.toLowerCase()) {
+            setError(`Гостя з іменем «${existing.name}» вже зареєстровано з іншим ніком. Введи той самий нік або трохи зміни ім'я (наприклад, додай прізвище).`);
             return;
           }
-          await updateDoc(doc(db, 'guests', selected.id), {
-            nickname: selected.nickname,
+          await updateDoc(doc(db, 'guests', existing.id), {
+            nickname: existing.nickname || nickname,
             firebaseUid: auth.currentUser.uid,
             updatedAt: serverTimestamp()
           });
+          dialog.close();
+          resolve({ guestId: existing.id, name: existing.name, nickname: existing.nickname || nickname });
         } else {
-          await updateDoc(doc(db, 'guests', selected.id), {
+          const guestId = `${slugify(name)}-${randomSuffix()}`;
+          await setDoc(doc(db, 'guests', guestId), {
+            name,
             nickname,
             firebaseUid: auth.currentUser.uid,
-            updatedAt: serverTimestamp()
+            createdAt: serverTimestamp()
           });
+          dialog.close();
+          resolve({ guestId, name, nickname });
         }
-        dialog.close();
-        resolve({ guestId: selected.id, name: selected.name, nickname: selected.nickname || nickname });
       } catch (err) {
         setError(err?.code === 'permission-denied'
-          ? 'Хтось щойно узяв цей нік або ім\'я. Спробуй ще раз.'
+          ? 'Не вдалося зберегти — спробуй ще раз за кілька секунд.'
           : 'Не вдалося зберегти. Перевір інтернет і спробуй ще раз.');
       } finally {
         submitBtn.disabled = false;

@@ -69,23 +69,12 @@
       <dialog class="ticket-dialog" id="ticketDialog" aria-labelledby="ticketDialogTitle"><button class="dialog-close" id="closeTicketDialog" type="button" aria-label="Закрити">×</button><p class="eyebrow">Квиток</p><h2 id="ticketDialogTitle">Дані маршруту</h2><div id="ticketDialogDetails"></div><button class="button primary" id="copyTicketDetails" type="button">Скопіювати дані</button></dialog>
       <dialog class="guest-gate" id="guestGate" aria-labelledby="guestGateTitle">
         <p class="eyebrow">Хто ти?</p>
-        <h2 id="guestGateTitle">Обери своє ім'я</h2>
-        <form id="guestNameForm">
-          <label>Ім'я зі списку
-            <select id="guestNameSelect" required>
-              <option value="" disabled selected>Оберіть ім'я…</option>
-            </select>
-          </label>
-          <p class="form-hint" id="guestNameEmptyHint" hidden>Список гостей ще не готовий — напиши Жанні, щоб додала імена.</p>
-          <button class="button primary" type="submit">Далі →</button>
-        </form>
-        <form id="guestNicknameForm" hidden>
-          <p class="muted" id="guestNicknameHint"></p>
-          <label id="guestNicknameLabel">Твій нік<input id="guestNicknameInput" required maxlength="24" autocomplete="off"></label>
-          <div class="guest-gate-actions">
-            <button class="button ghost" type="button" id="guestNameBack">← Назад</button>
-            <button class="button primary" type="submit" id="guestNicknameSubmit">Зберегти</button>
-          </div>
+        <h2 id="guestGateTitle">Привітайся</h2>
+        <p class="muted">Введи своє ім'я і придумай нік — під ним тебе бачитимуть на сайті. Якщо ти вже реєструвалась раніше, введи те саме ім'я й нік, щоб ми тебе впізнали.</p>
+        <form id="guestIdentityForm">
+          <label>Твоє ім'я<input id="guestNameInput" required maxlength="30" autocomplete="off" placeholder="напр. Аня"></label>
+          <label>Твій нік<input id="guestNicknameInput" required maxlength="24" autocomplete="off" placeholder="придумай або введи вже наявний"></label>
+          <button class="button primary" type="submit" id="guestIdentitySubmit">Зберегти</button>
         </form>
         <p class="form-error" id="guestGateError" role="alert"></p>
       </dialog>
