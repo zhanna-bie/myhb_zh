@@ -27,6 +27,7 @@ export class LiveGallery {
     this.touchStart = null;
     this.newBadgeTimers = new Set();
     this.justLikedId = null;
+    this.pendingLikes = new Set();
   }
 
   // Live getter, not a field snapshotted in the constructor: for a returning
@@ -283,10 +284,18 @@ export class LiveGallery {
   }
 
   async like(id) {
+    // arrayUnion/arrayRemove are idempotent server-side, so a rapid double
+    // click could never actually duplicate a guest's id in likedBy — but
+    // without this guard, click-click-click-click would fire four
+    // overlapping writes toggling back and forth, and if they resolve out of
+    // order the count can settle on the wrong final state. One in-flight
+    // write per photo at a time keeps the toggle predictable.
+    if (this.pendingLikes.has(id)) return;
     const item = this.items.find(photo => photo.id === id);
     if (!item) return;
     if (!this.ownerId) await ensureGuestSession().catch(() => {});
     if (!this.ownerId) { this.toast('Не вдалося оновити лайк.'); return; }
+    this.pendingLikes.add(id);
     const before = item.likedBy;
     const liked = before.includes(this.ownerId);
     const after = liked ? before.filter(uid => uid !== this.ownerId) : [...before, this.ownerId];
@@ -309,6 +318,8 @@ export class LiveGallery {
     } catch {
       this.applyLikeState(item, before);
       this.toast('Не вдалося оновити лайк.');
+    } finally {
+      this.pendingLikes.delete(id);
     }
   }
 
