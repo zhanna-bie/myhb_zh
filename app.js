@@ -1,5 +1,5 @@
 import { collection, doc, onSnapshot, serverTimestamp, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db } from './js/firebase.js';
+import { auth, db, ensureGuestSession } from './js/firebase.js';
 import { $, $$, escapeHtml } from './js/utils.js';
 import { LiveGallery } from './js/gallery.js';
 import { ensureGuestIdentity } from './js/guest.js';
@@ -228,6 +228,11 @@ function setupLocations(guest) {
   };
 
   const toggleVote = async placeId => {
+    // A returning guest's anonymous sign-in finishes in the background (see
+    // js/guest.js) rather than blocking entry — voting right after opening
+    // the page can otherwise race it and fail with isGuestOwner() rejecting
+    // an unauthenticated request. Give it a beat to catch up here instead.
+    if (!auth.currentUser) await ensureGuestSession().catch(() => {});
     const existingSlot = [...myVotes.entries()].find(([, vote]) => vote.placeId === placeId)?.[0];
     try {
       if (existingSlot) {

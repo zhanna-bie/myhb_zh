@@ -1,5 +1,5 @@
 import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, getDocs, increment, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { auth, db } from './firebase.js';
+import { auth, db, ensureGuestSession } from './firebase.js';
 import { $, $$, compressImage, escapeHtml, imageDimensions, relativeTime } from './utils.js';
 
 const PAGE_SIZE = 20;
@@ -13,7 +13,6 @@ export class LiveGallery {
   /** @param {{ guest: { guestId: string, nickname: string }, toast: (message: string) => void }} options */
   constructor({ guest, toast }) {
     this.guest = guest;
-    this.ownerId = auth.currentUser?.uid || null;
     this.toast = toast;
     this.items = [];
     this.filter = 'newest';
@@ -28,6 +27,18 @@ export class LiveGallery {
     this.touchStart = null;
     this.newBadgeTimers = new Set();
     this.justLikedId = null;
+  }
+
+  // Live getter, not a field snapshotted in the constructor: for a returning
+  // guest, ensureGuestIdentity() resolves before the background anonymous
+  // sign-in retry finishes (deliberately, so a returning guest never waits
+  // on it — see js/guest.js). LiveGallery can end up constructed in that
+  // window, and a snapshotted ownerId would freeze at null for the rest of
+  // the page's life even after auth finishes — silently breaking every
+  // upload/like for that whole visit. Reading auth.currentUser fresh here
+  // means it self-heals the moment auth actually resolves.
+  get ownerId() {
+    return auth.currentUser?.uid || null;
   }
 
   init() {
@@ -201,6 +212,7 @@ export class LiveGallery {
   }
 
   async upload(files) {
+    if (!this.ownerId) await ensureGuestSession().catch(() => {});
     if (!this.ownerId) { this.toast('Галерея тимчасово недоступна. Спробуй оновити сторінку.'); return; }
     const images = files.filter(file => file.type.startsWith('image/'));
     if (!images.length) {
@@ -273,6 +285,8 @@ export class LiveGallery {
   async like(id) {
     const item = this.items.find(photo => photo.id === id);
     if (!item) return;
+    if (!this.ownerId) await ensureGuestSession().catch(() => {});
+    if (!this.ownerId) { this.toast('Не вдалося оновити лайк.'); return; }
     const before = item.likedBy;
     const liked = before.includes(this.ownerId);
     const after = liked ? before.filter(uid => uid !== this.ownerId) : [...before, this.ownerId];
