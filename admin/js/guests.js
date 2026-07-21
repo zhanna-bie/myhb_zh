@@ -78,7 +78,18 @@ export function renderGuests() {
                 await saveGuest(form);
                 modal.close();
               } catch (error) {
-                toast.error(firebaseErrorMessage(error));
+                // The modal keeps its own snapshot of the guest data from the
+                // moment "Редагувати" was clicked — if that guest got deleted
+                // (by you in another tab, or self-deleted somehow) while the
+                // modal was still open, updateDoc() on a gone document throws
+                // not-found. Close instead of leaving a dead-end save button
+                // the guest list has already moved past.
+                if (error?.code === 'not-found') {
+                  modal.close();
+                  toast.error('Цього гостя вже немає в базі — список оновлено.');
+                } else {
+                  toast.error(firebaseErrorMessage(error));
+                }
               } finally {
                 setButtonLoading(saveBtn, false);
               }
