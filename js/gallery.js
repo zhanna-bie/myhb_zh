@@ -15,13 +15,13 @@ export class LiveGallery {
     this.guest = guest;
     this.toast = toast;
     this.items = [];
-    this.filter = 'newest';
+    this.authorQuery = '';
     this.cursor = null;
     this.loadingMore = false;
     this.observer = null;
     this.unsubscribe = null;
     this.statsUnsubscribe = null;
-    this.stats = { total: 0, contributors: 0, latest: null };
+    this.stats = { total: 0 };
     this.viewerIndex = 0;
     this.scale = 1;
     this.touchStart = null;
@@ -71,15 +71,8 @@ export class LiveGallery {
 
   subscribeStats() {
     this.statsUnsubscribe = onSnapshot(collection(db, 'gallery'), snapshot => {
-      const photos = snapshot.docs.map(item => this.normalize(item));
-      photos.sort((a, b) => this.timeOf(b) - this.timeOf(a));
-      this.stats = {
-        total: photos.length,
-        contributors: new Set(photos.map(item => item.uploadedBy).filter(Boolean)).size,
-        latest: photos[0] || null
-      };
+      this.stats = { total: snapshot.size };
       this.renderStats();
-      this.renderActivity(photos);
     }, () => this.renderStats());
   }
 
@@ -114,15 +107,10 @@ export class LiveGallery {
   }
 
   bindControls() {
-    $$('.gallery-filter').forEach(button => button.addEventListener('click', () => {
-      this.filter = button.dataset.filter;
-      $$('.gallery-filter').forEach(item => {
-        const selected = item === button;
-        item.classList.toggle('selected', selected);
-        item.setAttribute('aria-selected', String(selected));
-      });
+    $('#gallerySearch').addEventListener('input', event => {
+      this.authorQuery = event.target.value.trim().toLowerCase();
       this.render();
-    }));
+    });
     $('#fileInput').addEventListener('change', event => this.upload([...event.target.files]));
     const drop = $('#dropZone');
     ['dragenter', 'dragover'].forEach(type => drop.addEventListener(type, event => { event.preventDefault(); drop.classList.add('over'); }));
@@ -138,20 +126,22 @@ export class LiveGallery {
   }
 
   filteredItems() {
-    if (this.filter === 'mine') return this.items.filter(item => item.uploadedBy === this.ownerId);
-    if (this.filter === 'liked') return [...this.items].sort((a, b) => b.likes - a.likes);
-    return [...this.items].sort((a, b) => this.timeOf(b) - this.timeOf(a));
+    const sorted = [...this.items].sort((a, b) => this.timeOf(b) - this.timeOf(a));
+    if (!this.authorQuery) return sorted;
+    return sorted.filter(item => item.uploadedByName.toLowerCase().includes(this.authorQuery));
   }
 
   render() {
     const items = this.filteredItems();
     const root = $('#masonry');
-    root.innerHTML = items.length ? items.map((item, index) => this.card(item, index)).join('') : '<div class="gallery-empty">Поки що фотографій немає ❤️<br>Першим завантаж своє фото.</div>';
+    const empty = this.authorQuery
+      ? `<div class="gallery-empty">Нічого не знайшли за «${escapeHtml(this.authorQuery)}» ✦<br>Перевір ім'я або очисти пошук.</div>`
+      : '<div class="gallery-empty">Поки що фотографій немає ❤️<br>Першим завантаж своє фото.</div>';
+    root.innerHTML = items.length ? items.map((item, index) => this.card(item, index)).join('') : empty;
     $$('.photo-open', root).forEach(button => button.addEventListener('click', () => this.openViewer(Number(button.dataset.index))));
     $$('.like-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.like(button.dataset.id); }));
     $$('.delete-photo', root).forEach(button => button.addEventListener('click', event => { event.stopPropagation(); this.remove(button.dataset.id); }));
     this.renderStats();
-    this.renderActivity();
   }
 
   photoLabel(id) {
@@ -174,20 +164,7 @@ export class LiveGallery {
   }
 
   renderStats() {
-    const { total, contributors, latest } = this.stats;
-    const authorLabel = contributors === 1 ? 'автор' : contributors >= 2 && contributors <= 4 ? 'автори' : 'авторів';
-    $('#galleryStats').innerHTML = `<span>📸 ${total} фото</span><span>👥 ${contributors} ${authorLabel}</span><span>🕒 ${latest ? `Останнє: ${relativeTime(latest.uploadedAt)}` : 'Ще немає завантажень'}</span>`;
-  }
-
-  renderActivity(source = this.items) {
-    const grouped = new Map();
-    source.slice(0, 30).forEach(item => {
-      const key = `${item.uploadedBy}-${new Date(this.timeOf(item)).toDateString()}`;
-      const group = grouped.get(key) || { name: item.uploadedByName, count: 0, time: item.uploadedAt };
-      group.count += 1;
-      grouped.set(key, group);
-    });
-    $('#activityFeed').innerHTML = [...grouped.values()].slice(0, 3).map(item => `<span><b>${escapeHtml(item.name)}</b>: ${item.count} фото · ${relativeTime(item.time)}</span>`).join('');
+    $('#galleryStats').innerHTML = `<span>📸 ${this.stats.total} фото</span>`;
   }
 
   async loadMore() {

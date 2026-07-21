@@ -182,15 +182,16 @@ a{color:inherit;text-decoration:none}
 .nav nav a:hover:after{width:100%}
 .button{position:relative;overflow:hidden}
 .button:active{transform:scale(.97)}
-.button:focus-visible,.gallery-filter:focus-visible,.check-card:focus-visible,.vote:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
-.gallery-stats,.gallery-filters,.activity-feed{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-.gallery-stats span,.activity-feed span{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:999px;padding:9px 13px;font-size:11px;color:var(--muted)}
-.activity-feed b{color:var(--paper)}
-.gallery-filter{border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);padding:10px 13px;font:700 10px Manrope;cursor:pointer;transition:.2s}
-.gallery-filter:hover{border-color:var(--gold);background:rgba(255,179,0,.12);color:var(--paper)}
-/* Bold gold-fill selected state, matching .venue-picker .selected in the
-   voting section — the two pickers should read as the same UI language. */
-.gallery-filter.selected{background:linear-gradient(135deg,#ffd54d,var(--gold));border-color:transparent;color:var(--ink);box-shadow:0 8px 20px rgba(255,179,0,.22)}
+.button:focus-visible,.check-card:focus-visible,.vote:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.gallery-toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.gallery-stats{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.gallery-stats span{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:999px;padding:9px 13px;font-size:11px;color:var(--muted)}
+.gallery-search{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 220px;max-width:280px;border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:999px;padding:0 14px;transition:border-color .2s}
+.gallery-search:focus-within{border-color:var(--gold)}
+.gallery-search span{font-size:13px;opacity:.7}
+.gallery-search input{flex:1;min-width:0;border:0;background:none;color:var(--paper);font:500 13px Manrope;padding:10px 0}
+.gallery-search input::placeholder{color:var(--muted)}
+.gallery-search input:focus{outline:0}
 .upload-progress{margin:0 0 14px;color:var(--gold);font-size:12px}
 .upload-progress i{display:block;width:100%;height:5px;background:rgba(255,255,255,.1);margin-top:8px}
 .upload-progress b{display:block;height:100%;background:var(--gold);box-shadow:0 0 10px var(--gold);transition:width .2s}
@@ -267,8 +268,7 @@ to{opacity:1;transform:none}
 @media(max-width:700px){.wishlist-grid{grid-template-columns:1fr}
 }
 
-@media(max-width:700px){.gallery-filters{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
-.gallery-filter{white-space:nowrap}
+@media(max-width:700px){.gallery-search{max-width:none;flex-basis:100%}
 .checklist{grid-template-columns:repeat(2,1fr)}
 .check-card{min-height:92px}
 .lightbox{width:100vw;height:100svh;max-width:none;border:0;border-radius:0;padding:12px;grid-template-columns:1fr}
@@ -400,8 +400,9 @@ body { font-size: 18px; line-height: 1.55; }
 .check-card { min-height: 148px; border-radius: 18px; }
 .check-card span { font-size: 40px; }
 .check-card b { font-size: 18px; text-align: center; }
-.gallery-stats span, .activity-feed span { font-size: 16px; border-radius: 12px; }
-.gallery-filter { min-height: 48px; border-radius: 999px; font-size: 16px; }
+.gallery-stats span { font-size: 16px; border-radius: 12px; }
+.gallery-search { max-width: 320px; }
+.gallery-search input { font-size: 16px; padding: 12px 0; }
 .drop-zone { min-height: 100px; display: grid; place-items: center; border-radius: 18px; font-size: 17px; }
 .upload-progress { font-size: 17px; }
 .photo { border-radius: 14px; cursor: default; box-shadow: 0 8px 24px rgba(0,0,0,.16); }
@@ -468,8 +469,6 @@ body { font-size: 18px; line-height: 1.55; }
   .checklist { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .check-card { min-height: 132px; padding: 14px 10px; }
   .check-card b { font-size: 17px; }
-  .gallery-filters { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
-  .gallery-filter { width: 100%; font-size: 15px; }
   .masonry { columns: 2; column-gap: 10px; }
   .photo { margin-bottom: 10px; }
   .ticket-dialog { width: calc(100vw - 24px); max-height: calc(100svh - 24px); overflow: auto; padding: 24px; }
