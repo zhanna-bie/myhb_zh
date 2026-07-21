@@ -1,5 +1,5 @@
 import { collection, doc, onSnapshot, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db, firebaseConfig } from '../../js/firebase.js';
+import { db, firebaseConfig } from '../../js/firebase-admin.js';
 import { DEFAULT_CHECKLIST, DEFAULT_SETTINGS, DEFAULT_SWIM_CHECKLIST } from '../../js/defaults.js';
 import { $, $$, escapeHtml, mountView, setButtonLoading } from './helpers.js';
 import { toast } from './toast.js';

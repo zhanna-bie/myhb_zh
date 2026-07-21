@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { auth, ADMIN_EMAILS } from '../../js/firebase.js';
+import { auth, ADMIN_EMAILS } from '../../js/firebase-admin.js';
 import { $ } from './helpers.js';
 import { toast } from './toast.js';
 

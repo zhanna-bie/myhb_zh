@@ -1,5 +1,5 @@
 import { collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db } from '../../js/firebase.js';
+import { db } from '../../js/firebase-admin.js';
 import { $, $$, escapeHtml, exportCsv, mountView } from './helpers.js';
 import { toast } from './toast.js';
 

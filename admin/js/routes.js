@@ -1,5 +1,5 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db } from '../../js/firebase.js';
+import { db } from '../../js/firebase-admin.js';
 import { DEFAULT_ROUTES } from '../../js/defaults.js';
 import { $, $$, cleanObject, escapeHtml, firebaseErrorMessage, formToObject, mountView, setButtonLoading } from './helpers.js';
 import { modal } from './modal.js';

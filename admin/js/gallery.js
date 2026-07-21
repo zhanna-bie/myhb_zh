@@ -1,5 +1,5 @@
 import { addDoc, collection, deleteDoc, doc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db } from '../../js/firebase.js';
+import { db } from '../../js/firebase-admin.js';
 import { $, $$, compressImage, escapeHtml, formatBytes, imageDimensions, mountView, relativeTime, setButtonLoading } from './helpers.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
