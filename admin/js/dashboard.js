@@ -45,13 +45,13 @@ export function renderDashboard() {
     </section>
   `);
 
-  const state = { photos: 0, votes: 0, guests: new Set(), restaurants: 0, routes: 0, wishlist: 0, news: 0, bytes: 0, activity: [] };
+  const state = { photos: 0, votes: 0, guests: 0, restaurants: 0, routes: 0, wishlist: 0, news: 0, bytes: 0, activity: [] };
 
   const paintStats = () => {
     const cards = [
       ['Photos', state.photos, 'gallery'],
       ['Votes', state.votes, 'votes'],
-      ['Guests', state.guests.size, 'guests'],
+      ['Guests', state.guests, 'guests'],
       ['Restaurants', state.restaurants, 'restaurants'],
       ['Routes', state.routes, 'routes'],
       ['Wishlist', state.wishlist, 'wishlist'],
@@ -120,7 +120,14 @@ export function renderDashboard() {
 
   track(onSnapshot(collection(db, 'votes'), snapshot => {
     state.votes = snapshot.size;
-    state.guests = new Set(snapshot.docs.map(item => item.data().guestId).filter(Boolean));
+    paintStats();
+  }));
+
+  // Was reading unique guestIds out of `votes` — undercounted every guest who
+  // registered but hasn't voted yet (voting is optional). The real headcount
+  // lives in `guests`.
+  track(onSnapshot(collection(db, 'guests'), snapshot => {
+    state.guests = snapshot.size;
     paintStats();
   }));
 
