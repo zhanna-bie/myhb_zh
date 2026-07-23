@@ -1,6 +1,6 @@
 import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, getDocs, increment, limit, onSnapshot, orderBy, query, serverTimestamp, startAfter, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { auth, db, ensureGuestSession } from './firebase.js';
-import { $, $$, compressImage, escapeHtml, imageDimensions, relativeTime } from './utils.js';
+import { $, $$, compressImage, escapeHtml, imageDimensions, relativeTime, whenVisible } from './utils.js';
 
 const PAGE_SIZE = 20;
 const NEW_BADGE_MS = 8000;
@@ -44,10 +44,16 @@ export class LiveGallery {
 
   init() {
     this.bindControls();
-    this.subscribe();
-    this.subscribeStats();
     this.setupInfiniteScroll();
     this.setupViewer();
+    // Deferred: subscribe()/subscribeStats() each open a persistent Firestore
+    // stream. The static skeleton cards in the HTML already cover the wait,
+    // same as before — this just delays *when* that wait starts until the
+    // guest has actually scrolled near the gallery.
+    whenVisible($('#gallery'), () => {
+      this.subscribe();
+      this.subscribeStats();
+    });
   }
 
   subscribe() {

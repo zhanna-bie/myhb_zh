@@ -1,6 +1,26 @@
 export const $ = (selector, parent = document) => parent.querySelector(selector);
 export const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
 
+/**
+ * Runs `callback` once when `el` is about to scroll into view, instead of
+ * immediately — used to defer opening Firestore realtime listeners (each one
+ * is a persistent streaming connection) for sections below the first
+ * viewport, so a guest isn't paying for votes/gallery/routes listeners
+ * before they've scrolled anywhere near those sections. `rootMargin: 400px`
+ * gives it a head start so data is normally already there by the time the
+ * section is actually visible, not a visible pop-in.
+ * @param {Element | null} el @param {() => void} callback
+ */
+export function whenVisible(el, callback) {
+  if (!el) { callback(); return; }
+  const observer = new IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    observer.disconnect();
+    callback();
+  }, { rootMargin: '400px' });
+  observer.observe(el);
+}
+
 /** @param {string} [value] */
 export function escapeHtml(value = '') {
   const node = document.createElement('span');

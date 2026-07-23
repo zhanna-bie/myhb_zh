@@ -1,6 +1,6 @@
 import { collection, doc, onSnapshot, serverTimestamp, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { auth, db, ensureGuestSession } from './js/firebase.js';
-import { $, $$, escapeHtml } from './js/utils.js';
+import { $, $$, escapeHtml, whenVisible } from './js/utils.js';
 import { LiveGallery } from './js/gallery.js';
 import { ensureGuestIdentity } from './js/guest.js';
 import { DEFAULT_CHECKLIST, DEFAULT_LOCATIONS, DEFAULT_ROUTES, DEFAULT_SETTINGS, DEFAULT_SWIM_CHECKLIST } from './js/defaults.js';
@@ -271,30 +271,35 @@ function setupLocations(guest) {
     render();
   }));
 
-  onSnapshot(collection(db, 'restaurants'), snapshot => {
-    if (!snapshot.empty) locations = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-    render();
-  }, () => render());
+  // Deferred: three persistent Firestore streams (restaurants, order, votes)
+  // held open before the guest has scrolled anywhere near "Локація" served no
+  // purpose. render() below already shows DEFAULT_LOCATIONS immediately.
+  whenVisible($('#locations'), () => {
+    onSnapshot(collection(db, 'restaurants'), snapshot => {
+      if (!snapshot.empty) locations = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+      render();
+    }, () => render());
 
-  onSnapshot(doc(db, 'settings', 'votingOrder'), snapshot => {
-    const data = snapshot.data();
-    if (data?.venue?.length || data?.home?.length) order = { venue: data.venue || [], home: data.home || [] };
-    render();
-  }, () => render());
+    onSnapshot(doc(db, 'settings', 'votingOrder'), snapshot => {
+      const data = snapshot.data();
+      if (data?.venue?.length || data?.home?.length) order = { venue: data.venue || [], home: data.home || [] };
+      render();
+    }, () => render());
 
-  onSnapshot(collection(db, 'votes'), snapshot => {
-    votes = {};
-    myVotes = new Map();
-    snapshot.forEach(item => {
-      const data = item.data();
-      if (data.placeId) votes[data.placeId] = (votes[data.placeId] || 0) + 1;
-      if (data.guestId === guest.guestId) {
-        const slot = item.id.slice(guest.guestId.length + 1);
-        myVotes.set(slot, { placeId: data.placeId, venue: data.venue });
-      }
-    });
-    render();
-  }, () => render());
+    onSnapshot(collection(db, 'votes'), snapshot => {
+      votes = {};
+      myVotes = new Map();
+      snapshot.forEach(item => {
+        const data = item.data();
+        if (data.placeId) votes[data.placeId] = (votes[data.placeId] || 0) + 1;
+        if (data.guestId === guest.guestId) {
+          const slot = item.id.slice(guest.guestId.length + 1);
+          myVotes.set(slot, { placeId: data.placeId, venue: data.venue });
+        }
+      });
+      render();
+    }, () => render());
+  });
 
   render();
 }
@@ -347,10 +352,15 @@ function setupRoutes() {
     render();
   }));
 
-  onSnapshot(collection(db, 'transport'), snapshot => {
-    routes = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
-    render();
-  }, () => render());
+  // Deferred: opens a persistent Firestore stream, no reason to hold it open
+  // before the guest has scrolled anywhere near "Доїзд". render() below
+  // already shows DEFAULT_ROUTES immediately, same as it always has.
+  whenVisible($('#transport'), () => {
+    onSnapshot(collection(db, 'transport'), snapshot => {
+      routes = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+      render();
+    }, () => render());
+  });
 
   render();
 }
